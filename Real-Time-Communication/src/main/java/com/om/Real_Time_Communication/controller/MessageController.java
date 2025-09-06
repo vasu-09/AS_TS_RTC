@@ -1,0 +1,213 @@
+package com.om.Real_Time_Communication.controller;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.om.Real_Time_Communication.dto.*;
+import com.om.Real_Time_Communication.models.*;
+import com.om.Real_Time_Communication.service.*;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.nio.file.AccessDeniedException;
+import java.security.Principal;
+
+import java.util.List;
+import java.util.Map;
+
+
+@Controller
+@RequestMapping("/api/message")
+public class MessageController {
+    @Autowired
+    private MessageService messageService;
+    @Autowired
+    private ReadReceiptService readReceiptService;
+    @Autowired
+    private BlockService blockService;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private OrderedMessageService orderedMessageService;
+    @Autowired
+    @Qualifier("messageTaskExecutor")
+    private TaskExecutor messageTaskExecutor;
+
+
+    /**
+     * Unified persistent message path.
+     * Works for both 1:1 (room with two members) and group rooms.
+     *
+     * Client SEND to: /app/rooms.{roomId}.send
+     * Server BROADCAST to: /topic/room.{roomId}
+     */
+    @MessageMapping("/rooms.{roomId}.send")
+    public void sendToRoom(@DestinationVariable Long roomId,
+                           @Payload ChatSendDto dto,
+                           Principal principal,
+                           @Header(name = "correlation-id", required = false) String corrId) {
+
+        Long senderId = Long.valueOf(principal.getName());
+        // Persist + outbox (CQRS) + E2EE envelope handling is inside the service:
+        ChatMessage saved = messageService.saveInbound(roomId, senderId, dto);
+        Map<String, Object> event = messageService.toRoomEvent(saved);
+        messageTaskExecutor.execute(() ->
+                messagingTemplate.convertAndSend("/topic/room." + roomId, event)
+        );
+        // Fan-out a stable event shape to room subscribers
+        try {
+            // Persist, ACK to sender and broadcast to room in FIFO order
+            orderedMessageService.saveAndBroadcastOrdered(roomId, senderId, dto);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Ephemeral typing indicator to a specific user’s queue (non-persistent).
+     * Keep private destinations ONLY for lightweight, non-history signals.
+     *
+     * Client SEND to: /app/dm.{userId}.typing  (payload optional)
+     * Server SEND-TO-USER: /user/{userId}/queue/typing
+     */
+    @MessageMapping("/dm.{userId}.typing")
+    public void typingToUser(@DestinationVariable Long userId,
+                             Principal principal) {
+        Long senderId = Long.valueOf(principal.getName());
+        // Minimal payload – clients can show "senderId is typing..."
+        messagingTemplate.convertAndSendToUser(
+                String.valueOf(userId),
+                "/queue/typing",
+                Map.of("senderId", senderId, "type", "typing")
+        );
+    }
+
+    /**
+     * Ephemeral read receipt to a specific user (non-persistent).
+     *
+     * Client SEND to: /app/dm.{userId}.read  with {roomId, messageId}
+     * Server SEND-TO-USER: /user/{userId}/queue/receipts
+     */
+    @MessageMapping("/dm.{userId}.read")
+    public void readReceiptToUser(@DestinationVariable Long userId,
+                                  @Payload Map<String, Object> receipt,
+                                  Principal principal) {
+        Long senderId = Long.valueOf(principal.getName());
+        messagingTemplate.convertAndSendToUser(
+                String.valueOf(userId),
+                "/queue/receipts",
+                Map.of(
+                        "senderId", senderId,
+                        "type", "read",
+                        "roomId", receipt.get("roomId"),
+                        "messageId", receipt.get("messageId")
+                )
+        );
+    }
+
+    @MessageMapping("/rooms.{roomId}.read")
+    public void readStomp(@DestinationVariable Long roomId,
+                          @Payload Map<String,String> payload,
+                          Principal principal) {
+        Long userId = Long.valueOf(principal.getName());
+        String messageId = payload.get("messageId");
+        readReceiptService.updateLastRead(userId, roomId, messageId);
+        // ephemeral notify others in the room
+        messagingTemplate.convertAndSend("/topic/room." + roomId,
+                Map.of("type","read","roomId", roomId, "userId", userId, "messageId", messageId));
+    }
+
+
+    @MessageMapping("/rooms.{roomId}.typing")
+    public void typing(@DestinationVariable Long roomId,
+                       @Payload Map<String,Object> payload,
+                       Principal principal) {
+        Long userId = Long.valueOf(principal.getName());
+        // optional: { "state":"start"|"stop" }
+        String state = String.valueOf(payload.getOrDefault("state","start"));
+        // broadcast ephemeral typing to the room topic
+        messagingTemplate.convertAndSend("/topic/room." + roomId,
+                Map.of("type","typing","roomId", roomId, "userId", userId, "state", state));
+    }
+
+    public String extractRoomIdFromMetadata(String metadata) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(metadata);
+            return node.get("roomId").asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid metadata format: " + metadata);
+        }
+    }
+
+
+
+
+
+    @PostMapping("/{blockedId}")
+    public ResponseEntity<?> blockUser(@PathVariable String blockedId, Principal principal) {
+        blockService.blockUser(principal.getName(), blockedId);
+        return ResponseEntity.ok("User blocked");
+    }
+
+    @DeleteMapping("/{blockedId}")
+    public ResponseEntity<?> unblockUser(@PathVariable String blockedId, Principal principal) {
+        blockService.unblockUser(principal.getName(), blockedId);
+        return ResponseEntity.ok("User unblocked");
+    }
+
+    @GetMapping("/private/{otherUserId}")
+    public ResponseEntity<List<MessageDto>> getConversationWithUser(@PathVariable String otherUserId, Principal principal) {
+        String currentUserId = principal.getName(); // User ID from JWT
+        List<MessageDto> conversation = messageService.getConversation(currentUserId, otherUserId);
+        return ResponseEntity.ok(conversation);
+    }
+
+    @DeleteMapping("/messages/{messageId}/delete-for-me")
+    public ResponseEntity<?> deleteMessageForMe(@PathVariable Long messageId, Principal principal) {
+        messageService.deleteMessageForMe(messageId, principal.getName());
+        return ResponseEntity.ok("Message deleted for you");
+    }
+
+    @DeleteMapping("/messages/{messageId}/delete-for-everyone")
+    public ResponseEntity<?> deleteMessageForEveryone(@PathVariable Long messageId, Principal principal) {
+        messageService.deleteMessageForEveryone(messageId, principal.getName());
+        return ResponseEntity.ok("Message deleted for everyone");
+    }
+
+    @PutMapping("/messages/{messageId}/delete-for-me")
+    public ResponseEntity<Void> deleteForMe(@PathVariable Long messageId, Principal principal) {
+        String userId = principal.getName();
+        messageService.deleteMessageForUser(messageId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/messages/{messageId}/delete-for-everyone")
+    public ResponseEntity<Void> deleteForEveryone(@PathVariable Long messageId, Principal principal) throws AccessDeniedException {
+        String userId = principal.getName();
+        messageService.deleteForEveryone(messageId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{chatRoomId}/history")
+    public ResponseEntity<List<MessageDto>> getGroupMessageHistory(
+            @PathVariable String chatRoomId,
+            Principal principal) {
+
+        String currentUserId = principal.getName();
+        List<MessageDto> messages = messageService.getGroupMessageHistory(chatRoomId, currentUserId);
+        return ResponseEntity.ok(messages);
+    }
+
+}
