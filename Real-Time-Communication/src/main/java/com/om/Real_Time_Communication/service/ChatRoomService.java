@@ -12,10 +12,7 @@ import com.om.Real_Time_Communication.Repository.ChatRoomRepository;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class ChatRoomService {
@@ -79,6 +76,36 @@ public class ChatRoomService {
         }
 
         return savedRoom;
+    }
+
+    public ChatRoom createDirectChat(Long userId, Long otherUserId) {
+        Optional<ChatRoom> existing = chatRoomRepository.findDirectRoom(userId, otherUserId, ChatRoomType.DIRECT);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        ChatRoom room = new ChatRoom();
+        room.setRoomId(UUID.randomUUID().toString());
+        room.setType(ChatRoomType.DIRECT);
+        room.setGroup(false);
+        room.setAllowMembersToAddMembers(false);
+        room.setAllowMembersToEditMetadata(false);
+        room.setCreatedAt(LocalDateTime.now());
+
+        ChatRoom saved = chatRoomRepository.save(room);
+
+        ChatRoomParticipant p1 = new ChatRoomParticipant();
+        p1.setUserId(userId);
+        p1.setChatRoom(saved);
+        p1.setJoinedAt(LocalDateTime.now());
+
+        ChatRoomParticipant p2 = new ChatRoomParticipant();
+        p2.setUserId(otherUserId);
+        p2.setChatRoom(saved);
+        p2.setJoinedAt(LocalDateTime.now());
+
+        participantRepository.saveAll(List.of(p1, p2));
+        return saved;
     }
 
     public ChatRoom updateGroupMetadata(Long userId, String roomId, GroupMetadataUpdateRequest request) throws AccessDeniedException {

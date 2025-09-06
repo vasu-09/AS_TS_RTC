@@ -33,10 +33,6 @@ public class MessageController {
     @Autowired
     private MessageService messageService;
     @Autowired
-    private ReadReceiptService readReceiptService;
-    @Autowired
-    private BlockService blockService;
-    @Autowired
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private OrderedMessageService orderedMessageService;
@@ -116,30 +112,6 @@ public class MessageController {
         );
     }
 
-    @MessageMapping("/rooms.{roomId}.read")
-    public void readStomp(@DestinationVariable Long roomId,
-                          @Payload Map<String,String> payload,
-                          Principal principal) {
-        Long userId = Long.valueOf(principal.getName());
-        String messageId = payload.get("messageId");
-        readReceiptService.updateLastRead(userId, roomId, messageId);
-        // ephemeral notify others in the room
-        messagingTemplate.convertAndSend("/topic/room." + roomId,
-                Map.of("type","read","roomId", roomId, "userId", userId, "messageId", messageId));
-    }
-
-
-    @MessageMapping("/rooms.{roomId}.typing")
-    public void typing(@DestinationVariable Long roomId,
-                       @Payload Map<String,Object> payload,
-                       Principal principal) {
-        Long userId = Long.valueOf(principal.getName());
-        // optional: { "state":"start"|"stop" }
-        String state = String.valueOf(payload.getOrDefault("state","start"));
-        // broadcast ephemeral typing to the room topic
-        messagingTemplate.convertAndSend("/topic/room." + roomId,
-                Map.of("type","typing","roomId", roomId, "userId", userId, "state", state));
-    }
 
     public String extractRoomIdFromMetadata(String metadata) {
         try {
@@ -149,55 +121,6 @@ public class MessageController {
         } catch (Exception e) {
             throw new RuntimeException("Invalid metadata format: " + metadata);
         }
-    }
-
-
-
-
-
-    @PostMapping("/{blockedId}")
-    public ResponseEntity<?> blockUser(@PathVariable String blockedId, Principal principal) {
-        blockService.blockUser(principal.getName(), blockedId);
-        return ResponseEntity.ok("User blocked");
-    }
-
-    @DeleteMapping("/{blockedId}")
-    public ResponseEntity<?> unblockUser(@PathVariable String blockedId, Principal principal) {
-        blockService.unblockUser(principal.getName(), blockedId);
-        return ResponseEntity.ok("User unblocked");
-    }
-
-    @GetMapping("/private/{otherUserId}")
-    public ResponseEntity<List<MessageDto>> getConversationWithUser(@PathVariable String otherUserId, Principal principal) {
-        String currentUserId = principal.getName(); // User ID from JWT
-        List<MessageDto> conversation = messageService.getConversation(currentUserId, otherUserId);
-        return ResponseEntity.ok(conversation);
-    }
-
-    @DeleteMapping("/messages/{messageId}/delete-for-me")
-    public ResponseEntity<?> deleteMessageForMe(@PathVariable Long messageId, Principal principal) {
-        messageService.deleteMessageForMe(messageId, principal.getName());
-        return ResponseEntity.ok("Message deleted for you");
-    }
-
-    @DeleteMapping("/messages/{messageId}/delete-for-everyone")
-    public ResponseEntity<?> deleteMessageForEveryone(@PathVariable Long messageId, Principal principal) {
-        messageService.deleteMessageForEveryone(messageId, principal.getName());
-        return ResponseEntity.ok("Message deleted for everyone");
-    }
-
-    @PutMapping("/messages/{messageId}/delete-for-me")
-    public ResponseEntity<Void> deleteForMe(@PathVariable Long messageId, Principal principal) {
-        String userId = principal.getName();
-        messageService.deleteMessageForUser(messageId, userId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/messages/{messageId}/delete-for-everyone")
-    public ResponseEntity<Void> deleteForEveryone(@PathVariable Long messageId, Principal principal) throws AccessDeniedException {
-        String userId = principal.getName();
-        messageService.deleteForEveryone(messageId, userId);
-        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{chatRoomId}/history")

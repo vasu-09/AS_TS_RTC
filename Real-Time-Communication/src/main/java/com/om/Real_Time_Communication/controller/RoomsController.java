@@ -1,10 +1,7 @@
 // RoomsController.java  (merge ChatRoomController + RoomMessagesController [+ room-scoped bits])
 package com.om.Real_Time_Communication.controller;
 
-import com.om.Real_Time_Communication.dto.ChatMessageDto;
-import com.om.Real_Time_Communication.dto.CreateGroupRequest;
-import com.om.Real_Time_Communication.dto.GroupMetadataUpdateRequest;
-import com.om.Real_Time_Communication.dto.MessageDtoMapper;
+import com.om.Real_Time_Communication.dto.*;
 import com.om.Real_Time_Communication.models.ChatRoom;
 import com.om.Real_Time_Communication.models.Role;
 import com.om.Real_Time_Communication.service.ChatRoomService;
@@ -48,6 +45,14 @@ public class RoomsController {
         ChatRoom chatRoom = chatRoomService.createGroupChat(
                 request.getGroupName(), request.getParticipantPhoneNumbers(), creatorId);
         return ResponseEntity.ok(chatRoom);
+    }
+
+    @PostMapping("/direct")
+    public ResponseEntity<ChatRoom> createDirectChat(@RequestBody CreateDirectChatRequest request,
+                                                     Principal principal) {
+        Long userId = Long.valueOf(principal.getName());
+        ChatRoom room = chatRoomService.createDirectChat(userId, request.getParticipantId());
+        return ResponseEntity.ok(room);
     }
 
     @PutMapping("/{roomId}/update-metadata")

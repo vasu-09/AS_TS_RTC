@@ -117,11 +117,22 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         String auth = req.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (auth != null && auth.startsWith("Bearer ")) return auth.substring(7).trim();
 
-        // 2) Sec-WebSocket-Protocol: bearer,<token>
+        // Browsers split subprotocols on commas, so we need to consider both comma- and
+        // header-level splitting. Collect every token in order then inspect the sequence.
+        List<String> protoParts = new ArrayList<>();
         for (String header : req.getHeaders().getOrEmpty(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL)) {
-            for (String seg : header.split(",")) {
-                String s = seg.trim();
-                if (s.regionMatches(true, 0, "bearer ", 0, 7)) return s.substring(7).trim();
+            String[] split = header.split(",");
+            for (String p : split) protoParts.add(p.trim());
+        }
+        for (int i = 0; i < protoParts.size(); i++) {
+            String part = protoParts.get(i);
+            // Pattern: "bearer <token>"
+            if (part.regionMatches(true, 0, "bearer ", 0, 7)) {
+                return part.substring(7).trim();
+            }
+            // Pattern: "bearer" followed by token in next element
+            if (part.equalsIgnoreCase("bearer") && i + 1 < protoParts.size()) {
+                return protoParts.get(i + 1);
             }
         }
 
