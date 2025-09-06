@@ -141,6 +141,7 @@
 
 package com.om.backend.services;
 
+import com.om.backend.Dto.UserProfileDto;
 import com.om.backend.Model.NotificationPreferences;
 import com.om.backend.Model.PrivacySettings;
 import com.om.backend.Model.User;
@@ -274,5 +275,18 @@ public class UserService {
     }
 
 
+    public UserProfileDto getUserProfileById(Long aLong) {
+        User user = userRepo.findById(aLong).get();
+        if(user!=null){
+            UserProfileDto userprofile = new UserProfileDto();
+            userprofile.setId(String.valueOf(user.getId()));
+            userprofile.setAvatarUrl(user.getAvatarUrl());
+            userprofile.setEmail(user.getEmail());
+            userprofile.setDisplayName(user.getUserName());
+            return  userprofile;
+        }
+
+        return null;
+    }
 }
 

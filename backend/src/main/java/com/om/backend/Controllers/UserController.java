@@ -153,6 +153,11 @@ public class UserController {
     public String getUserById(@RequestBody Long id){
         return userService.getUserById(id);
     }
+
+    @GetMapping("/{id}")
+    public UserProfileDto findById(@PathVariable("id") String id){
+        return userService.getUserProfileById(Long.valueOf(id));
+    }
 }
 
 
