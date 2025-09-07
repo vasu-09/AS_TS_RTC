@@ -19,6 +19,7 @@ public class JwtConfig {
 
     private long accessTtlMin;          // e.g., 15
     private long refreshTtlDays;
+    private String audience;            // expected aud claim
 
     public String getAlg() {
         return alg;
@@ -82,6 +83,14 @@ public class JwtConfig {
 
     public void setRefreshTtlDays(long refreshTtlDays) {
         this.refreshTtlDays = refreshTtlDays;
+    }
+
+    public String getAudience() {
+        return audience;
+    }
+
+    public void setAudience(String audience) {
+        this.audience = audience;
     }
 }
 

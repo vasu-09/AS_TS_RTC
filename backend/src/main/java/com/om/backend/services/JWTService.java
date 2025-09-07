@@ -3,6 +3,7 @@ package com.om.backend.services;
 
 import com.om.backend.Config.JwtConfig;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -43,8 +44,17 @@ public class JWTService implements OtpService.JwtSigner {
         this.previousPublicOrNull = jwtPreviousPublicKey;
     }
 
-
-
+    private JwtBuilder baseBuilder(Instant now, Instant exp) {
+        JwtBuilder builder = Jwts.builder()
+                .header().keyId(cfg.getKid()).and()
+                .issuer(cfg.getIssuer())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(exp));
+        if (cfg.getAudience() != null && !cfg.getAudience().isBlank()) {
+            builder = builder.audience().add(cfg.getAudience()).and();
+        }
+        return builder;
+    }
 
     // ---- Token creation ----
 
@@ -58,13 +68,9 @@ public class JWTService implements OtpService.JwtSigner {
         claims.put("userId", user.getId()); // keep your custom claim
         // Add more claims if needed (roles/tenant/etc.)
 
-        return Jwts.builder()
-                .header().keyId(cfg.getKid()).and()       // publish kid for verifiers (JWKS)
+        return baseBuilder(now, exp)      // publish kid for verifiers (JWKS)
                 .claims().add(claims).and()
                 .subject(user.getUsername())              // subject = phone/username
-                .issuer(cfg.getIssuer())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.RS256)     // RS256 with RSA private key
                 .compact();
     }
@@ -74,12 +80,8 @@ public class JWTService implements OtpService.JwtSigner {
         Instant now = Instant.now();
         Instant exp = now.plus(Duration.ofDays(cfg.getRefreshTtlDays()));
 
-        return Jwts.builder()
-                .header().keyId(cfg.getKid()).and()       // publish kid
+        return baseBuilder(now, exp)
                 .subject(userDetails.getUsername())
-                .issuer(cfg.getIssuer())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.RS256)     // RS256
                 .compact();
     }
@@ -130,18 +132,24 @@ public class JWTService implements OtpService.JwtSigner {
      */
     public Claims extractAllClaims(String token) {
         try {
-            return Jwts.parser()
+            var parser = Jwts.parser()
                     .verifyWith(currentPublic)
-                    .requireIssuer(cfg.getIssuer())
-                    .build()
+                    .requireIssuer(cfg.getIssuer());
+            if (cfg.getAudience() != null && !cfg.getAudience().isBlank()) {
+                parser.requireAudience(cfg.getAudience());
+            }
+            return parser.build()
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (SignatureException e) {
             if (previousPublicOrNull == null) throw e;
-            return Jwts.parser()
+            var parser = Jwts.parser()
                     .verifyWith(previousPublicOrNull)
-                    .requireIssuer(cfg.getIssuer())
-                    .build()
+                    .requireIssuer(cfg.getIssuer());
+            if (cfg.getAudience() != null && !cfg.getAudience().isBlank()) {
+                parser.requireAudience(cfg.getAudience());
+            }
+            return parser.build()
                     .parseSignedClaims(token)
                     .getPayload();
         }
@@ -194,13 +202,9 @@ public class JWTService implements OtpService.JwtSigner {
         claims.put("userId", userId);
         claims.put("sid", sessionId);
 
-        return Jwts.builder()
-                .header().keyId(cfg.getKid()).and()
+        return baseBuilder(now, exp)
                 .claims().add(claims).and()
                 .subject(String.valueOf(userId))
-                .issuer(cfg.getIssuer())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.RS256)
                 .compact();
     }
@@ -213,13 +217,9 @@ public class JWTService implements OtpService.JwtSigner {
         Map<String, Object> claims = new HashMap<>();
         claims.put("sid", sessionId);
 
-        return Jwts.builder()
-                .header().keyId(cfg.getKid()).and()
+        return baseBuilder(now, exp)
                 .claims().add(claims).and()
                 .subject(String.valueOf(userId))
-                .issuer(cfg.getIssuer())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.RS256)
                 .compact();
     }

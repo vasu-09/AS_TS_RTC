@@ -47,6 +47,7 @@ jwt:
   alg: RS256
   issuer: ${JWT_ISSUER:http://localhost:8092}       # set to your real base URL/host:port
   kid: ${JWT_KID::main-2025-08-16}                  # any stable ID for this key
+  audience: ${JWT_AUDIENCE:localhost}
   private-key-pem: |-   # DEV ONLY: embedded PEM. Use env/Secret in prod.
     -----BEGIN PRIVATE KEY-----
     MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC0mTzmK0GoD7vN
