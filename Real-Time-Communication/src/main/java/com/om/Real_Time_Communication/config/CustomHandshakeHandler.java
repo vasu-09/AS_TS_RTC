@@ -9,6 +9,16 @@ import java.util.Map;
 import java.util.Set;
 
 public class CustomHandshakeHandler extends DefaultHandshakeHandler {
+
+    public CustomHandshakeHandler() {
+        // Advertise support for the "bearer" subprotocol so clients can send the
+        // JWT as an additional comma-separated value ("bearer,<token>") in the
+        // Sec-WebSocket-Protocol header. Spring's DefaultHandshakeHandler will
+        // echo the supported subprotocol back to the client which avoids
+        // InvalidSubProtocol exceptions from strict WebSocket clients such as
+        // Spring's Reactor Netty implementation.
+        setSupportedProtocols("bearer");
+    }
     @Override
     protected Principal determineUser(ServerHttpRequest req, WebSocketHandler h, Map<String,Object> attrs) {
         var p = (Principal) attrs.get("principal");
@@ -18,6 +28,10 @@ public class CustomHandshakeHandler extends DefaultHandshakeHandler {
         String tenant = (String) attrs.get("tenant");
         return (userId!=null) ? new JwtHandshakeInterceptor.WsUserPrincipal(userId, roles, tenant) : null;
     }
+
+
+
+
 
 
 }

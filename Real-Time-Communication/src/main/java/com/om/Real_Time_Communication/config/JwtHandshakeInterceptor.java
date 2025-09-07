@@ -88,6 +88,15 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             attrs.put("clientIp", clientIp(req));
             attrs.put("userAgent", req.getHeaders().getFirst(HttpHeaders.USER_AGENT));
 
+            // Echo back the subprotocol so that clients offering a protocol
+            // (e.g. "bearer <token>") complete the WebSocket handshake.
+            // Without this the reactor-netty client rejects the handshake with
+            // "Invalid subprotocol" when the server omits the header.
+            String subprotocol = req.getHeaders().getFirst(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL);
+            if (subprotocol != null && !subprotocol.isBlank()) {
+                resp.getHeaders().set(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL, subprotocol);
+            }
+
             return true;
 
         } catch (Exception e) {
