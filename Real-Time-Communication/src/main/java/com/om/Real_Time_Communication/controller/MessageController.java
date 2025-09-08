@@ -49,19 +49,13 @@ public class MessageController {
      * Server BROADCAST to: /topic/room.{roomId}
      */
     @MessageMapping("/rooms.{roomId}.send")
-    public void sendToRoom(@DestinationVariable Long roomId,
+    public void sendToRoom(@DestinationVariable String roomId,
                            @Payload ChatSendDto dto,
                            Principal principal,
                            @Header(name = "correlation-id", required = false) String corrId) {
 
         Long senderId = Long.valueOf(principal.getName());
-        // Persist + outbox (CQRS) + E2EE envelope handling is inside the service:
-        ChatMessage saved = messageService.saveInbound(roomId, senderId, dto);
-        Map<String, Object> event = messageService.toRoomEvent(saved);
-        messageTaskExecutor.execute(() ->
-                messagingTemplate.convertAndSend("/topic/room." + roomId, event)
-        );
-        // Fan-out a stable event shape to room subscribers
+
         try {
             // Persist, ACK to sender and broadcast to room in FIFO order
             orderedMessageService.saveAndBroadcastOrdered(roomId, senderId, dto);

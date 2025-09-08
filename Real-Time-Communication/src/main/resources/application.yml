@@ -66,7 +66,7 @@ GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:/path/to/moc-se
 jwt:
   issuer: ${JWT_ISSUER:http://localhost:8092}
   jwks-uri: ${JWT_JWKS_URI:http://localhost:8092/.well-known/jwks.json}
-  audience: ${JWT_AUDIENCE:localhost}
+  audience: ${JWT_AUDIENCE:}
 
 # Keep this custom and read it in a @ConfigurationProperties or @Value
 cors:
