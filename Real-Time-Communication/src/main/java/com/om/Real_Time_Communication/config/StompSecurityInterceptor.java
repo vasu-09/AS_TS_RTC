@@ -3,6 +3,8 @@ package com.om.Real_Time_Communication.config;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.om.Real_Time_Communication.Repository.ChatRoomParticipantRepository;
+import com.om.Real_Time_Communication.Repository.ChatRoomRepository;
+import com.om.Real_Time_Communication.models.ChatRoom;
 import com.om.Real_Time_Communication.service.BlockService;
 import com.om.Real_Time_Communication.utility.AclService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,10 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
     @Autowired
     private  ChatRoomParticipantRepository participantRepo;
 
+    @Autowired
+    private ChatRoomRepository chatRoomRepository;
+
+
     @Override
     public void afterSendCompletion(Message<?> message, MessageChannel channel, boolean sent, Exception ex) {
         MDC.clear();
@@ -58,7 +64,10 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
                     requireUser(acc); // throws if null
                     String dest = acc.getDestination(); // /topic/room.{roomId}
                     if (dest != null && dest.startsWith("/topic/room.")) {
-                        Long roomId = parseTrailingLong(dest);
+                        String roomKey = dest.substring("/topic/room.".length());
+                        Long roomId = chatRoomRepository.findByRoomId(roomKey)
+                                .map(ChatRoom::getId)
+                                .orElseThrow(() -> new IllegalArgumentException("Unknown room " + roomKey));
 
                         // 1) Room ACL (Redis-backed)
                         if (!acl.canSubscribe(userId, roomId)) {
@@ -78,9 +87,12 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
                 }
                 case SEND: {
                     requireUser(acc);
-                    String dest = acc.getDestination(); // /app/room.{roomId}.send
-                    if (dest != null && dest.startsWith("/app/room.")) {
-                        Long roomId = parseTrailingLong(dest);
+                    String dest = acc.getDestination(); // /app/rooms.{roomId}.send
+                    if (dest != null && dest.startsWith("/app/rooms.") && dest.endsWith(".send")) {
+                        String roomKey = dest.substring("/app/rooms.".length(), dest.length() - ".send".length());
+                        Long roomId = chatRoomRepository.findByRoomId(roomKey)
+                                .map(ChatRoom::getId)
+                                .orElseThrow(() -> new IllegalArgumentException("Unknown room " + roomKey));
 
                         // 1) Room ACL
                         if (!acl.canPublish(userId, roomId)) {
