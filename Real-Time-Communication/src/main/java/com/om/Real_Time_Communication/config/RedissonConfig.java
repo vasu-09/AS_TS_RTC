@@ -8,17 +8,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
-@ConditionalOnProperty(name = "rtc.redis.enabled", havingValue = "true")
+//@Configuration
+//@ConditionalOnProperty(name = "rtc.redis.enabled", havingValue = "true")
 public class RedissonConfig {
 
-    @Value("${rtc.redis.url:redis://localhost:6379}")
-    private String redisUrl;
-
-    @Bean(destroyMethod = "shutdown")
-    public RedissonClient redissonClient() {
-        Config config = new Config();
-        config.useSingleServer().setAddress(redisUrl);
-        return Redisson.create(config);
-    }
+//    @Value("${rtc.redis.url:redis://localhost:6379}")
+//    private String redisUrl;
+//
+//    @Bean(destroyMethod = "shutdown")
+//    public RedissonClient redissonClient() {
+//        Config config = new Config();
+//        config.useSingleServer().setAddress(redisUrl);
+//        return Redisson.create(config);
+//    }
 }

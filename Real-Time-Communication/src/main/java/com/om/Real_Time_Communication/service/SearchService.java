@@ -2,6 +2,7 @@ package com.om.Real_Time_Communication.service;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import com.om.Real_Time_Communication.dto.SearchMessageDoc;
+import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
@@ -16,9 +17,11 @@ import org.springframework.stereotype.Service;
 
 public class SearchService {
     private final ElasticsearchOperations es;
-    private final org.springframework.data.redis.core.StringRedisTemplate redis;
+//    private final org.springframework.data.redis.core.StringRedisTemplate redis;
+private final @Nullable StringRedisTemplate redis;
 
-    public SearchService(ElasticsearchOperations es, StringRedisTemplate redis) {
+//    public SearchService(ElasticsearchOperations es, StringRedisTemplate redis) {
+public SearchService(ElasticsearchOperations es, @Nullable StringRedisTemplate redis) {
         this.es = es;
         this.redis = redis;
     }
@@ -47,6 +50,7 @@ public class SearchService {
     }
 
     public java.util.List<RecentHit> searchInRoomMvp(Long roomId, String query, int limit) {
+        if (redis == null) return java.util.List.of();
         String zKey = "room:idx:" + roomId;
         var ids = redis.opsForZSet().reverseRange(zKey, 0, 2000);
         if (ids == null || ids.isEmpty()) return java.util.List.of();
