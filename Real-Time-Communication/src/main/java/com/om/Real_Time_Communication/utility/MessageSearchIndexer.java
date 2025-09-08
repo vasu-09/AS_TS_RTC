@@ -13,8 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
-@Component
-
+//@Component
 public class MessageSearchIndexer {
     private static final Logger log = LoggerFactory.getLogger(MessageSearchIndexer.class);
 
@@ -28,7 +27,7 @@ public class MessageSearchIndexer {
         this.redis = redis;
     }
 
-    @RabbitListener(queues = RabbitConfig.Q_READMODEL_MSG_CREATED)
+//    @RabbitListener(queues = RabbitConfig.Q_READMODEL_MSG_CREATED)
     public void onMessageCreated(String payload) throws Exception {
         MessageCreated ev = om.readValue(payload, MessageCreated.class);
 

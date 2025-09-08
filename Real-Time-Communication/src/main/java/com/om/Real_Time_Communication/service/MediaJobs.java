@@ -8,14 +8,14 @@ import java.util.Map;
 
 @Service
 public class MediaJobs {
-    private final RabbitTemplate rabbit;
-
-
-    public MediaJobs(RabbitTemplate rabbit) { this.rabbit = rabbit; }
+//    private final RabbitTemplate rabbit;
+//
+//
+//    public MediaJobs(RabbitTemplate rabbit) { this.rabbit = rabbit; }
 
     public void enqueueProcess(Long mediaId) {
-        rabbit.convertAndSend(MediaQueueConfig.EXCHANGE,
-                MediaQueueConfig.ROUTING_KEY_PROCESS,
-                Map.of("mediaId", mediaId));
+//        rabbit.convertAndSend(MediaQueueConfig.EXCHANGE,
+//                MediaQueueConfig.ROUTING_KEY_PROCESS,
+//                Map.of("mediaId", mediaId));
     }
 }

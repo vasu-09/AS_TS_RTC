@@ -89,11 +89,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableStompBrokerRelay("/topic", "/queue", "/user") // RabbitMQ STOMP relay
-                .setRelayHost("localhost")
-                .setRelayPort(61613)
-                .setClientLogin("guest")
-                .setClientPasscode("guest");
+//        config.enableStompBrokerRelay("/topic", "/queue", "/user") // RabbitMQ STOMP relay
+//                .setRelayHost("localhost")
+//                .setRelayPort(61613)
+//                .setClientLogin("guest")
+//                .setClientPasscode("guest");
+        config.enableSimpleBroker("/topic", "/queue", "/user"); // in-memory broker for local testing
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
     }

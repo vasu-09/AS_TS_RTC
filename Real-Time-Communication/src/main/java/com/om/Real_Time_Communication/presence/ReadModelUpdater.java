@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
-@Component
+//@Component
 public class ReadModelUpdater {
     private static final Logger log = LoggerFactory.getLogger(ReadModelUpdater.class);
     private final StringRedisTemplate redis;
@@ -17,9 +17,9 @@ public class ReadModelUpdater {
 
     // Bind this queue to exchange with routing key pattern "room.*.message.created"
     // Queue declaration can be via config or infra-as-code; for demo, assume queue exists.
-    @RabbitListener(queues = "rtc.readmodel.message.created")
-    public void onMessageCreated(String payload,
-                                 @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String rk) {
+//    @RabbitListener(queues = "rtc.readmodel.message.created")
+    public void onMessageCreated(String payload, String rk) {
+//                                 @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String rk) {
         // payload is MessageCreated JSON from outbox; we’ll just set last and bump unread
         try {
             // Extract roomId from routing key: room.<roomId>.message.created

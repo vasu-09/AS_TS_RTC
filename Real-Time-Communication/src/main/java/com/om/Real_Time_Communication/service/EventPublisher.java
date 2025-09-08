@@ -9,19 +9,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class EventPublisher {
 
-    private final RabbitTemplate rabbitTemplate;
-
-    @Autowired
-    public EventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
-    }
+//    private final RabbitTemplate rabbitTemplate;
+//
+//    @Autowired
+//    public EventPublisher(RabbitTemplate rabbitTemplate) {
+//        this.rabbitTemplate = rabbitTemplate;
+//    }
 
     public void publish(EventMessage message) {
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.EXCHANGE_EVENTS,
-                RabbitConfig. Q_READMODEL_MSG_CREATED,
-                message
-        );
+//        rabbitTemplate.convertAndSend(
+//                RabbitConfig.EXCHANGE_EVENTS,
+//                RabbitConfig. Q_READMODEL_MSG_CREATED,
+//                message
+//        );
     }
 
     public void publishNewMessage(Long roomId,
@@ -30,18 +30,18 @@ public class EventPublisher {
                                   java.util.List<Long> recipientIds,
                                   boolean e2ee,
                                   String preview) {
-        java.util.Map<String, Object> payload = new java.util.HashMap<>();
-        payload.put("type", "MESSAGE_NEW");
-        payload.put("roomId", roomId);
-        payload.put("messageId", messageId);
-        payload.put("senderId", senderId);
-        payload.put("e2ee", e2ee);
-        if (preview != null) payload.put("preview", preview);
-        payload.put("recipients", recipientIds);
-
-        // Example: publish to notifications exchange
-        // routing key can be tenant-aware if you have multitenancy
-        rabbitTemplate.convertAndSend("rtc.notifications", "notif.message.new", payload);
+//        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+//        payload.put("type", "MESSAGE_NEW");
+//        payload.put("roomId", roomId);
+//        payload.put("messageId", messageId);
+//        payload.put("senderId", senderId);
+//        payload.put("e2ee", e2ee);
+//        if (preview != null) payload.put("preview", preview);
+//        payload.put("recipients", recipientIds);
+//
+//        // Example: publish to notifications exchange
+//        // routing key can be tenant-aware if you have multitenancy
+//        rabbitTemplate.convertAndSend("rtc.notifications", "notif.message.new", payload);
     }
 
     /**
@@ -52,12 +52,12 @@ public class EventPublisher {
      * alert the user.
      */
     public void publishOfflineMessage(String receiverId, com.om.Real_Time_Communication.dto.MessageDto dto) {
-        java.util.Map<String, Object> payload = new java.util.HashMap<>();
-        payload.put("type", "OFFLINE_MESSAGE");
-        payload.put("receiverId", receiverId);
-        payload.put("senderId", dto.getSenderId());
-        payload.put("messageId", dto.getMessageId());
-        rabbitTemplate.convertAndSend("rtc.notifications", "notif.message.offline", payload);
+//        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+//        payload.put("type", "OFFLINE_MESSAGE");
+//        payload.put("receiverId", receiverId);
+//        payload.put("senderId", dto.getSenderId());
+//        payload.put("messageId", dto.getMessageId());
+//        rabbitTemplate.convertAndSend("rtc.notifications", "notif.message.offline", payload);
     }
 }
 

@@ -26,7 +26,7 @@ public class StubMediaWorker {
         this.repo = repo;
     }
 
-    @RabbitListener(queues = "q.media.process")
+//    @RabbitListener(queues = "q.media.process")
     @Transactional
     public void onProcess(Map<String,Object> msg) {
         Long mediaId = ((Number) msg.get("mediaId")).longValue();
