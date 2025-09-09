@@ -28,7 +28,6 @@ import java.util.Map;
 
 
 @Controller
-@RequestMapping("/api/message")
 public class MessageController {
     @Autowired
     private MessageService messageService;
@@ -48,7 +47,7 @@ public class MessageController {
      * Client SEND to: /app/rooms.{roomId}.send
      * Server BROADCAST to: /topic/room.{roomId}
      */
-    @MessageMapping("/rooms.{roomId}.send")
+    @MessageMapping("/rooms/{roomId}/send")
     public void sendToRoom(@DestinationVariable String roomId,
                            @Payload ChatSendDto dto,
                            Principal principal,
@@ -71,7 +70,7 @@ public class MessageController {
      * Client SEND to: /app/dm.{userId}.typing  (payload optional)
      * Server SEND-TO-USER: /user/{userId}/queue/typing
      */
-    @MessageMapping("/dm.{userId}.typing")
+    @MessageMapping("/dm/{userId}/typing")
     public void typingToUser(@DestinationVariable Long userId,
                              Principal principal) {
         Long senderId = Long.valueOf(principal.getName());
@@ -89,7 +88,7 @@ public class MessageController {
      * Client SEND to: /app/dm.{userId}.read  with {roomId, messageId}
      * Server SEND-TO-USER: /user/{userId}/queue/receipts
      */
-    @MessageMapping("/dm.{userId}.read")
+    @MessageMapping("/dm/{userId}/read")
     public void readReceiptToUser(@DestinationVariable Long userId,
                                   @Payload Map<String, Object> receipt,
                                   Principal principal) {
@@ -117,14 +116,6 @@ public class MessageController {
         }
     }
 
-    @GetMapping("/{chatRoomId}/history")
-    public ResponseEntity<List<MessageDto>> getGroupMessageHistory(
-            @PathVariable String chatRoomId,
-            Principal principal) {
 
-        String currentUserId = principal.getName();
-        List<MessageDto> messages = messageService.getGroupMessageHistory(chatRoomId, currentUserId);
-        return ResponseEntity.ok(messages);
-    }
 
 }

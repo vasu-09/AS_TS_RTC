@@ -37,7 +37,7 @@ public class CallSignalController {
     }
 
     // 1) 1:1 INVITE  — client SENDs to /app/call.invite.{roomId}
-    @MessageMapping("/call.invite.{roomId}")
+    @MessageMapping("/call/invite/{roomId}")
     public void invite1to1(@DestinationVariable Long roomId,
                            @Payload CallInviteDto dto,
                            Principal principal) {
@@ -64,7 +64,7 @@ public class CallSignalController {
     }
 
     // 2) Group INVITE — /app/call.invite.group.{roomId}
-    @MessageMapping("/call.invite.group.{roomId}")
+    @MessageMapping("/call/invite/group/{roomId}")
     public void inviteGroup(@DestinationVariable Long roomId,
                             @Payload CallInviteDto dto,
                             Principal principal) {
@@ -87,7 +87,7 @@ public class CallSignalController {
     }
 
     // 3) Join group — /app/call.join.{callId}
-    @MessageMapping("/call.join.{callId}")
+    @MessageMapping("/call/join/{callId}")
     public void joinGroup(@DestinationVariable Long callId, Principal principal)  {
         Long userId = Long.valueOf(principal.getName());
         try {
@@ -104,7 +104,7 @@ public class CallSignalController {
     }
 
     // 4) Leave group — /app/call.leave.{callId}
-    @MessageMapping("/call.leave.{callId}")
+    @MessageMapping("/call/leave/{callId}")
     public void leaveGroup(@DestinationVariable Long callId, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         calls.leave(callId, userId); // implement in service
@@ -112,14 +112,14 @@ public class CallSignalController {
     }
 
     // 5) Ringing ack — /app/call.ringing.{callId}
-    @MessageMapping("/call.ringing.{callId}")
+    @MessageMapping("/call/ringing/{callId}")
     public void ringing(@DestinationVariable Long callId, Principal principal) {
         calls.markRinging(callId, Long.valueOf(principal.getName()));
         broker.convertAndSend("/topic/call."+callId, CallEvents.ringing(callId, principal.getName()));
     }
 
     // 6) Answer — /app/call.answer.{callId}
-    @MessageMapping("/call.answer.{callId}")
+    @MessageMapping("/call/answer/{callId}")
     public void answer(@DestinationVariable Long callId,
                        @Payload SdpDto dto, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
@@ -128,7 +128,7 @@ public class CallSignalController {
     }
 
     // 7) Decline — /app/call.decline.{callId}
-    @MessageMapping("/call.decline.{callId}")
+    @MessageMapping("/call/decline/{callId}")
     public void decline(@DestinationVariable Long callId, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         calls.decline(callId, userId);
@@ -136,7 +136,7 @@ public class CallSignalController {
     }
 
     // 8) End (WS) — /app/call.end.{callId}
-    @MessageMapping("/call.end.{callId}")
+    @MessageMapping("/call/end/{callId}")
     public void end(@DestinationVariable Long callId, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         calls.end(callId, userId, "hangup");
@@ -144,7 +144,7 @@ public class CallSignalController {
     }
 
     // 9) ICE candidate relay — /app/call.candidate.{callId}
-    @MessageMapping("/call.candidate.{callId}")
+    @MessageMapping("/call/candidate/{callId}")
     public void candidate(@DestinationVariable Long callId,
                           @Payload IceCandidateDto dto,
                           Principal principal) {
@@ -156,13 +156,13 @@ public class CallSignalController {
     }
 
     // 10) Re-INVITE / ICE restart — /app/call.reinvite.{callId}
-    @MessageMapping("/call.reinvite.{callId}")
+    @MessageMapping("/call/reinvite/{callId}")
     public void reinvite(@DestinationVariable Long callId, Principal principal) {
         calls.renegotiate(callId, Long.valueOf(principal.getName()));
         broker.convertAndSend("/topic/call."+callId, CallEvents.reinvite(callId, principal.getName()));
     }
 
-    @MessageMapping("/call.fail.{callId}")
+    @MessageMapping("/call/fail/{callId}")
     public void fail(@DestinationVariable Long callId, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         calls.fail(callId, userId);

@@ -39,7 +39,7 @@ public class ReadReceiptController {
     }
 
     /** Client SENDs to /app/room.{roomId}.read with {lastReadMessageId} */
-    @MessageMapping("/room.{roomId}.read")
+    @MessageMapping("/room/{roomId}/read")
     public void read(@DestinationVariable Long roomId, ReadDto dto, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         UserRoomState state = service.updateLastRead(userId, roomId, dto.getLastReadMessageId());
@@ -51,6 +51,6 @@ public class ReadReceiptController {
         ev.put("roomId", roomId);
         ev.put("lastReadMessageId", state.getLastReadMessageId());
         ev.put("lastReadAt", state.getLastReadAt());
-        messaging.convertAndSend("/topic/room."+roomId+".reads", ev);
+        messaging.convertAndSend("/topic/room/"+roomId+"/reads", ev);
     }
 }

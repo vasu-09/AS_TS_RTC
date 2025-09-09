@@ -169,7 +169,7 @@ public class CallSessionService {
         evt.put("type", "call.join");
         evt.put("callId", callId);
         evt.put("userId", userId);
-        broker.convertAndSend("/topic/call." + callId, evt);
+        broker.convertAndSend("/topic/call/" + callId, evt);
         return s;
     }
 
@@ -190,7 +190,7 @@ public class CallSessionService {
         evt.put("type", "call.leave");
         evt.put("callId", callId);
         evt.put("userId", userId);
-        broker.convertAndSend("/topic/call." + callId, evt);
+        broker.convertAndSend("/topic/call/" + callId, evt);
         return s;
     }
 
@@ -256,7 +256,7 @@ public class CallSessionService {
                     Map<String,Object> evt = new HashMap<>();
                     evt.put("event","TIMEOUT");
                     evt.put("callId", s.getId());
-                    broker.convertAndSend("/topic/call." + s.getId(), evt);
+                    broker.convertAndSend("/topic/call/" + s.getId(), evt);
                 } catch (Exception ignore) { }
             }
         }
@@ -344,9 +344,9 @@ public class CallSessionService {
         // Best-effort STOMP fan-out (don’t break the txn if broker send fails)
         try {
             // Per-call topic (handy for UI tied to a specific call)
-            broker.convertAndSend("/topic/call." + saved.getId(), evt);
+            broker.convertAndSend("/topic/call/" + saved.getId(), evt);
             // Also emit to the room stream if your clients watch room activity
-            broker.convertAndSend("/topic/room." + saved.getRoomId(), evt);
+            broker.convertAndSend("/topic/room/" + saved.getRoomId(), evt);
         } catch (Exception ignore) { /* don’t rollback the DB commit */ }
 
         // Optional: notify Notification Service for missed/ended call

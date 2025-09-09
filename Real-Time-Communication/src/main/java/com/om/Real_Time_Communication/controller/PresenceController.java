@@ -68,7 +68,7 @@ public class PresenceController {
     }
 
     /** Client SENDs to /app/room.{roomId}.ping every ~15s with {deviceId} */
-    @MessageMapping("/room.{roomId}.ping")
+    @MessageMapping("/room/{roomId}/ping")
     public void ping(@DestinationVariable Long roomId, PingDto dto, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         String deviceId = dto.getDeviceId() != null ? dto.getDeviceId() : "default";
@@ -81,13 +81,13 @@ public class PresenceController {
         ev.put("deviceId", deviceId);
         ev.put("online", true);
         ev.put("lastSeen", Instant.now());
-        messaging.convertAndSend("/topic/room."+roomId+".presence", ev);
+        messaging.convertAndSend("/topic/room/"+roomId+"/presence", ev);
     }
 
 
 
     /** Client SENDs to /app/room.{roomId}.typing with {deviceId, typing:true/false} */
-    @MessageMapping("/room.{roomId}.typing")
+    @MessageMapping("/room/{roomId}/typing")
     public void typing(@DestinationVariable Long roomId, TypingDto dto, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
         String deviceId = dto.getDeviceId() != null ? dto.getDeviceId() : "default";
@@ -107,6 +107,6 @@ public class PresenceController {
         }
 
         // Broadcast to room subscribers only
-        messaging.convertAndSend("/topic/room."+roomId+".typing", ev);
+        messaging.convertAndSend("/topic/room/"+roomId+"/typing", ev);
     }
 }

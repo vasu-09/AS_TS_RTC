@@ -16,7 +16,15 @@ public class MessagesRestController {
     private final MessageService messageService;
 
     public MessagesRestController(MessageService messageService) { this.messageService = messageService; }
+    @GetMapping("/{chatRoomId}/history")
+    public ResponseEntity<List<MessageDto>> getGroupMessageHistory(
+            @PathVariable String chatRoomId,
+            Principal principal) {
 
+        String currentUserId = principal.getName();
+        List<MessageDto> messages = messageService.getGroupMessageHistory(chatRoomId, currentUserId);
+        return ResponseEntity.ok(messages);
+    }
 
     @DeleteMapping("/{messageId}/delete-for-me")
     public ResponseEntity<?> deleteMessageForMe(@PathVariable Long messageId, Principal principal) {

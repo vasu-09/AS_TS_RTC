@@ -53,7 +53,7 @@ public class OrderedMessageService {
 
             // Broadcast the message event to the room topic for other subscribers
             Map<String, Object> event = messageService.toRoomEvent(saved);
-            messagingTemplate.convertAndSend("/topic/room." + roomId, event);
+            messagingTemplate.convertAndSend("/topic/room/" + roomId, event);
             log.info("Broadcasted message {} to room {}", saved.getMessageId(), roomId);
 
             return null; // required by Callable

@@ -1,6 +1,5 @@
 package com.om.Real_Time_Communication.config;
 
-import com.netflix.discovery.converters.Auto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
@@ -48,8 +47,8 @@ public class InboundSizeAndRateInterceptor implements ChannelInterceptor {
             limiter.checkOrThrow("u:" + user + ":joins", 10, 10_000);
         } else if (StompCommand.SEND.equals(cmd)) {
             // 50 msgs / 5s per (user, room) + 200 msgs / 5s global per user
-            String dest = acc.getDestination();        // e.g., /app/room.123.send
-            Long roomId = parseRoomId(dest);
+            String dest = acc.getDestination();        // e.g., /app/room/123/send
+            String roomId = parseRoomId(dest);
             limiter.checkOrThrow("u:" + user + ":r:" + roomId + ":send", 50, 5_000);
             limiter.checkOrThrow("u:" + user + ":send", 200, 5_000);
         }
@@ -60,10 +59,15 @@ public class InboundSizeAndRateInterceptor implements ChannelInterceptor {
         List<String> v = acc.getNativeHeader(name);
         return (v == null || v.isEmpty()) ? null : v.get(0);
     }
-    private static Long parseRoomId(String dest) {
-        if (dest == null) return -1L;
-        int dot = dest.lastIndexOf('.');
-        if (dot < 0 || dot + 1 >= dest.length()) return -1L;
-        try { return Long.valueOf(dest.substring(dot + 1)); } catch (Exception e) { return -1L; }
+    private static String parseRoomId(String dest) {
+        if (dest == null) return "-1";
+        String prefix = "/app/rooms/";
+        if (dest.startsWith(prefix)) {
+            int end = dest.indexOf('/', prefix.length());
+            if (end > 0) {
+                return dest.substring(prefix.length(), end);
+            }
+        }
+        return "-1";
     }
 }

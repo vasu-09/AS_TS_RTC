@@ -62,9 +62,9 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
             switch (cmd) {
                 case SUBSCRIBE: {
                     requireUser(acc); // throws if null
-                    String dest = acc.getDestination(); // /topic/room.{roomId}
-                    if (dest != null && dest.startsWith("/topic/room.")) {
-                        String roomKey = dest.substring("/topic/room.".length());
+                    String dest = acc.getDestination(); // /topic/room/{roomId}
+                    if (dest != null && dest.startsWith("/topic/room/")) {
+                        String roomKey = dest.substring("/topic/room/".length()).split("/")[0];
                         Long roomId = chatRoomRepository.findByRoomId(roomKey)
                                 .map(ChatRoom::getId)
                                 .orElseThrow(() -> new IllegalArgumentException("Unknown room " + roomKey));
@@ -87,9 +87,9 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
                 }
                 case SEND: {
                     requireUser(acc);
-                    String dest = acc.getDestination(); // /app/rooms.{roomId}.send
-                    if (dest != null && dest.startsWith("/app/rooms.") && dest.endsWith(".send")) {
-                        String roomKey = dest.substring("/app/rooms.".length(), dest.length() - ".send".length());
+                    String dest = acc.getDestination(); // /topic/room/{roomId}
+                    if (dest != null && dest.startsWith("/topic/room/")) {
+                        String roomKey = dest.substring("/topic/room/".length()).split("/")[0];
                         Long roomId = chatRoomRepository.findByRoomId(roomKey)
                                 .map(ChatRoom::getId)
                                 .orElseThrow(() -> new IllegalArgumentException("Unknown room " + roomKey));
@@ -146,12 +146,6 @@ public class StompSecurityInterceptor implements ChannelInterceptor {
         String sub = jwt.getSubject();
         if (sub == null) throw new IllegalArgumentException("Token has no subject");
         return Long.valueOf(sub);
-    }
-
-    private static Long parseTrailingLong(String dest) {
-        int dot = dest.lastIndexOf('.');
-        if (dot < 0 || dot == dest.length()-1) throw new IllegalArgumentException("Bad destination: " + dest);
-        return Long.valueOf(dest.substring(dot+1));
     }
 
     /**
