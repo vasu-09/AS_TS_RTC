@@ -20,9 +20,6 @@ spring:
         discovery:
           enabled: false
 
-
-
-
 jwt:
   alg: RS256
   issuer: test
