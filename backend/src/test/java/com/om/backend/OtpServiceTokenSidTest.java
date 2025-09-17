@@ -33,7 +33,7 @@ public class OtpServiceTokenSidTest {
         JWTService jwtService = new JWTService(cfg, priv, pub, null);
 
         OtpService otpService = new OtpService(
-                null, null, null, null, null,
+                null, null, null, null, null, null,
                 jwtService,
                 Clock.systemUTC()
         );

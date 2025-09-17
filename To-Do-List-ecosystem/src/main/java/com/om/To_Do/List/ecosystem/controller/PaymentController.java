@@ -44,11 +44,11 @@ public class PaymentController {
     /**
      * Local subscription status by userId.
      */
-//    @GetMapping("/subscription/{userId}/status")
-//    public ResponseEntity<?> status(@PathVariable Long userId) {
-//        boolean active = paymentService.isSubscriptionActive(userId);
-//        return ResponseEntity.ok(Map.of("userId", userId, "isActive", active));
-//    }
+    @GetMapping("/subscription/{userId}/status")
+    public ResponseEntity<?> status(@PathVariable Long userId) {
+        boolean active = paymentService.isSubscriptionActive(userId);
+        return ResponseEntity.ok(Map.of("userId", userId, "isActive", active));
+    }
 
     /**
      * Razorpay webhook receiver.

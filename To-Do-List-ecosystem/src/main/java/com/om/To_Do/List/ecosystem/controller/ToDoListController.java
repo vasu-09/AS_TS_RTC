@@ -60,9 +60,12 @@ public class ToDoListController {
         return ResponseEntity.ok("You have left the list.");
     }
 
-    @PutMapping("/{listId}")
-    public ResponseEntity<?> updateList(@PathVariable Long listId,  @RequestHeader("X-User-Id") String userId, @RequestBody UpdateListRequest request) throws AccessDeniedException {
-        return ResponseEntity.ok(toDoListService.updateList(listId, Long.valueOf(userId), request));
+    @PutMapping("/{listId}/name")
+    public ResponseEntity<?> updateListName(@PathVariable Long listId,
+                                            @RequestHeader("X-User-Id") String userId,
+                                            @RequestBody UpdateListNameRequest request) throws AccessDeniedException {
+        return ResponseEntity.ok(
+                toDoListService.updateListName(listId, Long.valueOf(userId), request.getNewName()));
     }
 
     @DeleteMapping("/{listId}")
@@ -117,6 +120,13 @@ public class ToDoListController {
     ) throws AccessDeniedException {
         ToDoItemRes updated = toDoListService.updateItem(listId, itemId, Long.valueOf(userId), request);
         return ResponseEntity.ok(updated);
+    }
+    @GetMapping("/{listId}/items/{itemId}")
+    public ResponseEntity<ToDoItemRes> getItem( @PathVariable Long listId,
+                                                @PathVariable Long itemId,
+                                                @RequestHeader("X-User-Id") String userId) throws AccessDeniedException {
+        ToDoItemRes toDoItemRes = toDoListService.getItem(listId, itemId, Long.valueOf(userId));
+        return ResponseEntity.ok(toDoItemRes);
     }
 
     /**

@@ -16,9 +16,9 @@ spring:
       hibernate:
         format_sql: ${SPRING_JPA_FORMAT_SQL:false}
 #
-#  redis:
-#    host: ${SPRING_REDIS_HOST:localhost}
-#    port: ${SPRING_REDIS_PORT:6379}
+  redis:
+    host: ${SPRING_REDIS_HOST:localhost}
+    port: ${SPRING_REDIS_PORT:6379}
 
 security:
   oauth2:
@@ -51,11 +51,11 @@ management:
       exposure:
         include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,prometheus}
 #
-#razorpay:
-#  api:
-#    key: ${RAZORPAY_API_KEY:rzp_test_1UaYWJMuiMbpzB}
-#    secret: ${RAZORPAY_API_SECRET:tSv3viRgPajAnYVQqUkjVkLT}
-#    webhookSecret: ${RAZORPAY_API_WEBHOOK_SECRET:}
+razorpay:
+  api:
+    key: ${RAZORPAY_API_KEY:rzp_test_1UaYWJMuiMbpzB}
+    secret: ${RAZORPAY_API_SECRET:tSv3viRgPajAnYVQqUkjVkLT}
+    webhookSecret: ${RAZORPAY_API_WEBHOOK_SECRET:}
 
 # Keep this custom and read it in a @ConfigurationProperties or @Value
 cors:

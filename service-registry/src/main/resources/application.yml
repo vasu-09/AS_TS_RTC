@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: Service-Registry
+
+server:
+  port: ${SERVER_PORT:8761}
+
+eureka:
+  instance:
+    # For local dev keep localhost; in K8s you can set this to the service DNS (e.g., service-registry)
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+  client:
+    # This app is the registry server, so it shouldn't register with or fetch from another registry
+    fetch-registry: ${EUREKA_CLIENT_FETCH_REGISTRY:false}
+    register-with-eureka: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA:false}

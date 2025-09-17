@@ -198,35 +198,6 @@ public class ToDoListService {
         listRecipientRepository.delete(recipient);
     }
 
-    public ToDoList updateList(Long listId, Long userId, UpdateListRequest request) throws AccessDeniedException {
-        ToDoList list = toDoListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("List not found"));
-
-        // Update title if provided
-        if (request.getTitle() != null && !request.getTitle().isBlank()) {
-            list.setTitle(request.getTitle());
-        }
-
-        if (!list.getCreatedByUserId().equals(userId)) {
-            throw new AccessDeniedException("Only the list creator can update this list.");
-        }
-        // Delete old items and add new ones
-        toDoItemRepository.deleteByListId(listId);
-
-        List<ToDoItem> updatedItems = request.getItems().stream().map(dto -> {
-            ToDoItem item = new ToDoItem();
-            item.setItemName(dto.getItemName());
-            item.setQuantity(dto.getQuantity());
-            item.setPriceText(dto.getPriceText());
-            item.setSubQuantitiesJson(serializeSubQuantities(dto.getSubQuantities()));
-            item.setList(list);
-            return item;
-        }).toList();
-
-        toDoItemRepository.saveAll(updatedItems);
-
-        return toDoListRepository.save(list);
-    }
 
     public void deleteList(Long listId, Long userId) throws AccessDeniedException {
         ToDoList list = toDoListRepository.findById(listId)
@@ -234,6 +205,19 @@ public class ToDoListService {
 
         if (!list.getCreatedByUserId().equals(userId)) {
             throw new AccessDeniedException("Only the list creator can delete this list.");
+        }
+        List<Long> recipientIds = listRecipientRepository.findByListId(listId).stream()
+                .map(ListRecipient::getRecipientUserId)
+                .toList();
+
+        if (!recipientIds.isEmpty()) {
+            ListDeletedEvent evt = new ListDeletedEvent(
+                    listId,
+                    list.getTitle(),
+                    userId,
+                    recipientIds
+            );
+            eventPublisher.publishEvent(evt);
         }
         toDoListRepository.delete(list);
     }
@@ -549,5 +533,70 @@ public class ToDoListService {
         }
 
         return new SyncResponse(updatedItems, conflicts);
+    }
+
+    public ToDoList updateListName(Long listId, Long userId, String newName) throws AccessDeniedException {
+        ToDoList list = toDoListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("List not found"));
+        if (newName != null && !newName.isBlank() && !newName.equals(list.getTitle())) {
+            String oldName = list.getTitle();
+            list.setTitle(newName);
+            toDoListRepository.save(list);
+
+            List<Long> recipientIds = listRecipientRepository.findByListId(listId).stream()
+                    .map(ListRecipient::getRecipientUserId)
+                    .toList();
+
+            if (!recipientIds.isEmpty()) {
+                ListNameChangedEvent evt = new ListNameChangedEvent(
+                        listId,
+                        oldName,
+                        newName,
+                        userId,
+                        recipientIds
+                );
+                eventPublisher.publishEvent(evt);
+            }
+        }
+        return list;
+    }
+
+
+    public ToDoItemRes getItem(Long listId, Long itemId, Long userId) throws AccessDeniedException {
+
+        ToDoList list = toDoListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("List not found"));
+//        boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
+//        if (!active) {
+//            throw new AccessDeniedException(
+//                    "Subscription required to create priced lists. " +
+//                            "Use /api/lists/checklist for simple item-only lists.");
+//        }
+        // 2) load the item
+        ToDoItem item = toDoItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Item not found"));
+
+        // 3) ensure it belongs to the right list
+        if (!item.getList().getId().equals(listId)) {
+            throw new RuntimeException("Item does not belong to list " + listId);
+        }
+
+        if (!list.getCreatedByUserId().equals(userId)) {
+            throw new AccessDeniedException("Only the creator can update this meeting.");
+        }
+
+
+        ToDoItemRes toDoItemDTO = new ToDoItemRes();
+        toDoItemDTO.setId(item.getId());
+        toDoItemDTO.setItemName(item.getItemName());
+        toDoItemDTO.setId(item.getId());
+        toDoItemDTO.setUpdatedAt(item.getUpdatedAt());
+        toDoItemDTO.setPriceText(item.getPriceText());
+        toDoItemDTO.setQuantity(item.getQuantity());
+        toDoItemDTO.setCreatedAt(item.getCreatedAt());
+        toDoItemDTO.setSubQuantitiesJson(item.getSubQuantitiesJson());
+
+        // 5) persist and return
+        return toDoItemDTO;
     }
 }
