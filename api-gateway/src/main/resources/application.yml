@@ -9,33 +9,33 @@ spring:
   config:
     import: "optional:configserver:"
 
-
-
-
   cloud:
+    kubernetes:
+      discovery:
+        enabled: ${SPRING_CLOUD_KUBERNETES_DISCOVERY_ENABLED:true}
     gateway:
       routes:
         - id: auth-service
-          uri: lb://AUTHENTICATION-SERVICE          # service ID is stable; keep literal
+          uri: lb://authentication-service         # service ID is stable; keep literal
           predicates:
             - Path=/auth/**,/user/**,/contacts/**,/.well-known/jwks.json,/v1/keys/**,/webhooks/sms-dlr,
 #          filters:
 #            - StripPrefix=1
 
         - id: notification-service
-          uri: lb://NOTIFICATION-SERVICE
+          uri: lb://notification-service
           predicates:
             - Path=/notifications/**
 
 
         - id: rtc-service
-          uri: ${RTC_WS_URI:lb:ws://REAL-TIME-COMMUNICATION}  # websocket route; env overrideable
+          uri: ${RTC_WS_URI:lb:ws://real-time-communication}  # websocket route; env overrideable
           predicates:
             - Path=/rtc/**,/ws/**,/api/search/**,/api/blocks/**,/api/calls/**,/api/dm/**,/api/e2ee/**,/api/media/**,/api/message/**,/api/messages/**,/api/readmodel/**,/api/rooms/**
 
 
         - id: todo-service
-          uri: lb://TO-DO-LIST-SERVICE
+          uri: lb://to-do-list-service
           predicates:
             - Path=/api/v1/payments/**,/api/lists/**
 
@@ -66,15 +66,6 @@ spring:
 #          jwk-set-uri: http://localhost:8092/.well-known/jwks.json
 jwt:
   audience: ${JWT_AUDIENCE:}
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
-    register-with-eureka: true
-    fetch-registry: true
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
 
 management:
   endpoints:

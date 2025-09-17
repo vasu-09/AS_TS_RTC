@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient("AUTHENTICATION-SERVICE")
+@FeignClient(name = "authentication-service")
 public interface UserServiceClient {
 
     @PostMapping("/user/get-ids-by-phone-numbers")

@@ -1,12 +1,17 @@
 spring:
   application:
-    name: To-Do-List-Service
+    name: to-do-list-service
+
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: ${SPRING_CLOUD_KUBERNETES_DISCOVERY_ENABLED:true}
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/backend_user_management?allowPublicKeyRetrieval=true&useSSL=false}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/to_do_list}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
