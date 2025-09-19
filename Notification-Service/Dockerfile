@@ -16,7 +16,7 @@ RUN adduser -D -u 1001 -s /sbin/nologin spring
 USER 1001
 COPY --from=build /app/target/*.jar /app/app.jar
 
-# Adjust if your service runs on another port
+
 EXPOSE 8093
 
 # Helpful default memory setting for containers
