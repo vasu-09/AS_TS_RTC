@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # OIDC to get gcloud credentials bound to your CI SA
+      # OIDC auth as your CI service account (no JSON key)
       - name: Auth to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
         with:
@@ -73,11 +73,13 @@ jobs:
 
           for DF in "${DOCKERFILES[@]}"; do
             MODULE="$(dirname "$DF")"
-            NAME="$(basename "$MODULE")"
+            NAME_RAW="$(basename "$MODULE")"
+            # Docker repo names must be lowercase and limited to [a-z0-9._-]
+            NAME="$(echo "$NAME_RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')"
             IMAGE="${AR}/${NAME}:${TAG}"
-            echo ">>> Building $NAME -> $IMAGE"
+            echo ">>> Building ${NAME_RAW} -> ${IMAGE}"
 
-            # If your Dockerfile uses ARG MODULE (repo-root build), pass build-arg & use context '.'
+            # If Dockerfile uses ARG MODULE (repo-root build), pass it; else build with module context
             if grep -qE '^ARG[[:space:]]+MODULE=' "$DF"; then
               docker build --build-arg MODULE="$MODULE" -t "$IMAGE" -f "$DF" .
             else
