@@ -40,17 +40,18 @@ public class Subscription {
     public Subscription() {
     }
 
-    public Subscription(Long userId, String subscriptionId, LocalDate startDate, LocalDate expiryDate, Boolean isActive,
-                        Integer failureCount, LocalDateTime lastFailureAt, String customerId, String paymentToken) {
+    public Subscription(Long userId, String subscriptionId, String customerId, String paymentToken,
+                        LocalDate startDate, LocalDate expiryDate, Boolean isActive,
+                        Integer failureCount, LocalDateTime lastFailureAt) {
         this.userId = userId;
         this.subscriptionId = subscriptionId;
+        this.customerId = customerId;
+        this.paymentToken = paymentToken;
         this.startDate = startDate;
         this.expiryDate = expiryDate;
         this.isActive = isActive;
         this.failureCount = failureCount;
         this.lastFailureAt = lastFailureAt;
-        this.customerId = customerId;
-        this.paymentToken = paymentToken;
     }
 
 
