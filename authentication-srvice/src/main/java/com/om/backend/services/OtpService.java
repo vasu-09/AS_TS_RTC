@@ -18,11 +18,11 @@ import com.om.backend.util.PhoneNumberUtil1;          // your util with toE164In
 
 
 import com.om.backend.util.SmsClient;
-import org.apache.commons.lang.RandomStringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -54,6 +54,7 @@ public class OtpService {
     private final Clock clock;
 
     private static final Logger log = LoggerFactory.getLogger(OtpService.class);
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     public OtpService(StringRedisTemplate redis, SmsProperties props, SmsClient smsClient, OtpMessageBuilder messageBuilder, OtpRepository otpRepo, UserRepository userRepo, JwtSigner jwtSigner, Clock clock) {
         this.redis = redis;
@@ -90,7 +91,7 @@ public class OtpService {
 
         // 2) generate OTP using your config
         int digits = props.getOtp().getDigits();
-        String otp = RandomStringUtils.randomNumeric(digits);
+        String otp = generateNumericOtp(digits);
 
         // 3) store OTP in Redis with TTL (overwrite any existing)
         Duration ttl = Duration.ofMinutes(props.getOtp().getTtlMinutes());
@@ -205,7 +206,7 @@ public class OtpService {
     private void enforceRateLimits(String phone) {
         int perMinute = props.getOtp().getPerMinuteLimit();
         int perHour = props.getOtp().getPerHourLimit();
-        Instant now = Instant.now(clock);
+    
 
         // minute window (60s)
         Long minuteCount = redis.opsForValue().increment(rlMinuteKey(phone));
@@ -224,6 +225,17 @@ public class OtpService {
         if (hourCount != null && hourCount > perHour) {
                 throw new IllegalStateException("Too many OTP requests. Try again later.");
         }
+    }
+
+    private String generateNumericOtp(int digits) {
+        if (digits <= 0) {
+            throw new IllegalArgumentException("OTP length must be positive");
+        }
+        StringBuilder builder = new StringBuilder(digits);
+        for (int i = 0; i < digits; i++) {
+            builder.append(RANDOM.nextInt(10));
+        }
+        return builder.toString();
     }
 
         /** Minimal signer abstraction expected to be provided elsewhere in your app. */
