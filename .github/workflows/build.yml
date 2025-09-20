@@ -5,14 +5,12 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-# Required so OIDC works and we can read the repo
 permissions:
   id-token: write
   contents: read
 
-# Adjust only if you used a different region/repo name or want to centralize project id
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}   # set this repo secret
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}     # set this repo secret
   GCP_REGION: asia-south1
   AR_REPO: moc-repo
   AR_HOST: asia-south1-docker.pkg.dev
@@ -24,43 +22,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Auth to Google Cloud via OIDC (no JSON keys)
       - name: Auth to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}   # e.g. projects/1234567890/locations/global/workloadIdentityPools/github-pool/providers/github
+          service_account: ${{ secrets.GCP_SA_EMAIL }}                  # e.g. github-ci@<PROJECT_ID>.iam.gserviceaccount.com
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      - name: Enable Docker to push to Artifact Registry
+        run: gcloud auth configure-docker ${{ env.AR_HOST }} -q
+
       - name: Compute tag
         id: vars
         run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      # Auto-discover Dockerfiles and build each image.
-      # - If Dockerfile contains "ARG MODULE=", we assume Option B and build from repo root using --file + --build-arg.
-      # - Otherwise we assume Option A and build with the service folder as context.
-      - name: Build & push images with Cloud Build
+      - name: Build & push images with Cloud Build (custom staging bucket)
         shell: bash
         run: |
           set -euo pipefail
           TAG=${{ steps.vars.outputs.TAG }}
           AR="${{ env.AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}"
+          STAGING="gs://moc-build-src-${{ env.GCP_PROJECT_ID }}/src"   # <-- create this bucket and grant CI SA Storage Object Admin
 
-          # find all tracked Dockerfiles
+          # Find all tracked Dockerfiles
           mapfile -t DOCKERFILES < <(git ls-files -- */Dockerfile)
-          if [[ ${#DOCKERFILES[@]} -eq 0 ]]; then
-            echo "No Dockerfiles found in the repo."
-            exit 1
-          fi
+
+          # Optionally skip non-deployable Dockerfiles (e.g., monorepo parent)
+          FILTER_OUT=("backend/Dockerfile")
+          FILTERED=()
+          for DF in "${DOCKERFILES[@]}"; do
+            skip=0
+            for F in "${FILTER_OUT[@]}"; do [[ "$DF" == "$F" ]] && skip=1 && break; done
+            [[ $skip -eq 0 ]] && FILTERED+=("$DF")
+          done
+          DOCKERFILES=("${FILTERED[@]}")
 
           echo "Dockerfiles found:"
           printf ' - %s\n' "${DOCKERFILES[@]}"
 
           for DF in "${DOCKERFILES[@]}"; do
+            [[ -z "$DF" ]] && continue
             MODULE="$(dirname "$DF")"
             NAME="$(basename "$MODULE")"
             IMAGE="${AR}/${NAME}:${TAG}"
@@ -68,10 +73,18 @@ jobs:
 
             if grep -qE '^ARG[[:space:]]+MODULE=' "$DF"; then
               echo "Detected Option B style (repo-root context)."
-              gcloud builds submit --tag "$IMAGE" --file "$DF" --build-arg MODULE="$MODULE" .
+              gcloud builds submit \
+                --gcs-source-staging-dir "$STAGING" \
+                --tag "$IMAGE" \
+                --file "$DF" \
+                --build-arg MODULE="$MODULE" \
+                .
             else
               echo "Detected Option A style (module folder context)."
-              gcloud builds submit --tag "$IMAGE" "$MODULE"
+              gcloud builds submit \
+                --gcs-source-staging-dir "$STAGING" \
+                --tag "$IMAGE" \
+                "$MODULE"
             fi
           done
 
