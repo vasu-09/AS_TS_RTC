@@ -5,8 +5,6 @@ import lombok.*;
 import java.time.Instant;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
     private String id;        // or Long id, if you prefer
