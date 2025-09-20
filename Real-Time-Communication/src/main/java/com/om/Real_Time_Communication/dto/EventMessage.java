@@ -11,7 +11,6 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
 public class EventMessage {
     private UUID userId;
