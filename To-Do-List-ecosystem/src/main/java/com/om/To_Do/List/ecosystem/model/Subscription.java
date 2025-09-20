@@ -20,8 +20,12 @@ public class Subscription {
     private String customerId;       // Razorpay customer ID
     private String paymentToken;     // Token/mandate ID returned by Razorpay
 
-
+    @JsonFormat(pattern = "yyyy-MM-dd")                // for JSON in/out
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)     // for Spring MVC binding
     private LocalDate startDate;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")                // for JSON in/out
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)     // for Spring MVC binding
     private LocalDate expiryDate;
     private Boolean isActive;
 
