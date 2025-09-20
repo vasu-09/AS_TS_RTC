@@ -41,15 +41,17 @@ public class ToDoItem {
     public ToDoItem() {
     }
 
-    public ToDoItem(Long id, String itemName, String quantity, String priceText, String subQuantitiesJson, ToDoList list, LocalDateTime createdAt, LocalDateTime updatedAt) {
+   public ToDoItem(Long id, String itemName, String quantity, String priceText,
+                    LocalDateTime createdAt, LocalDateTime updatedAt,
+                    String subQuantitiesJson, ToDoList list) {
         this.id = id;
         this.itemName = itemName;
         this.quantity = quantity;
         this.priceText = priceText;
-        this.subQuantitiesJson = subQuantitiesJson;
-        this.list = list;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.subQuantitiesJson = subQuantitiesJson;
+        this.list = list;
     }
 
 
