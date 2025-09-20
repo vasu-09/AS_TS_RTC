@@ -5,28 +5,26 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Required so OIDC works and we can read the repo
 permissions:
   id-token: write
   contents: read
 
+# Adjust only if you used a different region/repo name or want to centralize project id
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}   # set this repo secret
   GCP_REGION: asia-south1
   AR_REPO: moc-repo
   AR_HOST: asia-south1-docker.pkg.dev
-  SERVICES: |
-    Authentication-Service
-    Real-Time-Communication
-    Notification-Service
-    To-Do-List-ecosystem
-    api-gateway
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
+      # Auth to Google Cloud via OIDC (no JSON keys)
       - name: Auth to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
         with:
@@ -38,22 +36,43 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Enable Docker to push to Artifact Registry
-        run: gcloud auth configure-docker ${{ env.AR_HOST }} -q
-
       - name: Compute tag
         id: vars
         run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+      # Auto-discover Dockerfiles and build each image.
+      # - If Dockerfile contains "ARG MODULE=", we assume Option B and build from repo root using --file + --build-arg.
+      # - Otherwise we assume Option A and build with the service folder as context.
       - name: Build & push images with Cloud Build
         shell: bash
         run: |
-          IFS=$'\n' read -d '' -r -a SVC_ARR <<< "${SERVICES}"
-          for MODULE in "${SVC_ARR[@]}"; do
-            NAME=$(basename "$MODULE")
-            IMAGE="${AR_HOST}/${GCP_PROJECT_ID}/${AR_REPO}/${NAME}:${{ steps.vars.outputs.TAG }}"
+          set -euo pipefail
+          TAG=${{ steps.vars.outputs.TAG }}
+          AR="${{ env.AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}"
+
+          # find all tracked Dockerfiles
+          mapfile -t DOCKERFILES < <(git ls-files -- */Dockerfile)
+          if [[ ${#DOCKERFILES[@]} -eq 0 ]]; then
+            echo "No Dockerfiles found in the repo."
+            exit 1
+          fi
+
+          echo "Dockerfiles found:"
+          printf ' - %s\n' "${DOCKERFILES[@]}"
+
+          for DF in "${DOCKERFILES[@]}"; do
+            MODULE="$(dirname "$DF")"
+            NAME="$(basename "$MODULE")"
+            IMAGE="${AR}/${NAME}:${TAG}"
             echo ">>> Building $NAME -> $IMAGE"
-            gcloud builds submit --tag "$IMAGE" "$MODULE"
+
+            if grep -qE '^ARG[[:space:]]+MODULE=' "$DF"; then
+              echo "Detected Option B style (repo-root context)."
+              gcloud builds submit --tag "$IMAGE" --file "$DF" --build-arg MODULE="$MODULE" .
+            else
+              echo "Detected Option A style (module folder context)."
+              gcloud builds submit --tag "$IMAGE" "$MODULE"
+            fi
           done
 
       - name: List pushed images
