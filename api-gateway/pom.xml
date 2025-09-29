@@ -26,10 +26,15 @@
 		<tag/>
 		<url/>
 	</scm>
-	<properties>
-		<java.version>17</java.version>
-		<spring-cloud.version>2024.0.1</spring-cloud.version>
-	</properties>
+	 <properties>
+                <java.version>17</java.version>
+                <spring-cloud.version>2024.0.2</spring-cloud.version>
+                <spring-security.version>6.4.5</spring-security.version>
+                <reactor-netty.version>1.2.6</reactor-netty.version>
+                <netty.version>4.1.120.Final</netty.version>
+                <protobuf.version>3.25.3</protobuf.version>
+                <httpclient5.version>5.4.4</httpclient5.version>
+    </properties>
 	<dependencies>
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.boot</groupId>-->
@@ -70,9 +75,14 @@
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-gateway</artifactId>
-		</dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>${httpclient5.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-kubernetes-client</artifactId>
@@ -96,17 +106,45 @@
 		</dependency>
 
 	</dependencies>
-	  <dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>${spring-cloud.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+	 <dependencyManagement>
+                <dependencies>
+                        <dependency>
+                                <groupId>org.springframework.cloud</groupId>
+                                <artifactId>spring-cloud-dependencies</artifactId>
+                                <version>${spring-cloud.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                        </dependency>
+                        <dependency>
+                                <groupId>org.springframework.security</groupId>
+                                <artifactId>spring-security-bom</artifactId>
+                                <version>${spring-security.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                        </dependency>
+                        <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-bom</artifactId>
+                                <version>${netty.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                        </dependency>
+                        <dependency>
+                                <groupId>io.projectreactor.netty</groupId>
+                                <artifactId>reactor-netty-bom</artifactId>
+                                <version>${reactor-netty.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                        </dependency>
+                        <dependency>
+                                <groupId>com.google.protobuf</groupId>
+                                <artifactId>protobuf-bom</artifactId>
+                                <version>${protobuf.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                        </dependency>
+                </dependencies>
+        </dependencyManagement>
 
 	<build>
 		<plugins>
