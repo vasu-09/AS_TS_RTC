@@ -1,0 +1,193 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+
+env:
+  # Repo variables (Settings → Secrets and variables → Actions → Variables)
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_ARTIFACT_REPO: ${{ vars.GCP_ARTIFACT_REPO }}
+  SERVICE_SLUG: ${{ vars.SERVICE_SLUG }}
+  APP_DIR: ${{ vars.APP_DIR != '' && vars.APP_DIR || '.' }}
+
+  # Production gates
+  ODC_FAIL_CVSS: "7.0"   # fail on HIGH+ (CVSS ≥ 7)
+  TRIVY_EXIT_CODE: "1"   # fail on HIGH/CRITICAL
+
+  # Image name
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPO }}/${{ vars.SERVICE_SLUG }}:${{ github.sha }}
+
+jobs:
+  build-test-scan-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------- Build & unit tests ----------
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'                 # Java 17 runtime/toolchain
+          cache: maven
+          cache-dependency-path: ${{ env.APP_DIR }}/pom.xml
+
+      - name: Unit tests
+        if: hashFiles(format('{0}/pom.xml', env.APP_DIR)) != ''
+        working-directory: ${{ env.APP_DIR }}
+        run: mvn -B -ntp -DskipTests=false test           
+
+      - name: Verify
+        if: hashFiles(format('{0}/pom.xml', env.APP_DIR)) != ''
+        working-directory: ${{ env.APP_DIR }}
+        run: mvn -B -ntp -DskipTests verify
+
+       # Finds and passes your suppression file (in APP_DIR or repo root)
+      - name: Prepare ODC suppression flag
+        id: sca_args
+        shell: bash
+        run: |
+          set -e
+          for f in \
+            "${APP_DIR}/odc-suppressions.xml" \
+            "odc-suppressions.xml" \
+            "${APP_DIR}/dependency-check-suppressions.xml" \
+            "dependency-check-suppressions.xml"
+          do
+            if [[ -f "$f" ]]; then
+              echo "Using suppression file: $f"
+              echo "odc=--suppression $f" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No suppression file found"
+          echo "odc=" >> "$GITHUB_OUTPUT"
+
+      # DEBUG: prove the actual versions being used by the build
+      - name: Debug effective Netty/Reactor deps
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          mvn -q -DskipTests dependency:tree \
+            -Dincludes=io.netty:*,io.projectreactor.netty:* -Dverbose | tee deps.txt
+        continue-on-error: true
+
+
+      # ---------- OWASP Dependency-Check (SCA) ----------
+      - name: Dependency scan (OWASP)
+        if: hashFiles(format('{0}/pom.xml', env.APP_DIR)) != ''
+        id: depcheck
+        timeout-minutes: 20
+        uses: dependency-check/Dependency-Check_Action@main
+        env:
+          JAVA_HOME: /opt/jdk
+        with:
+          project: ${{ github.repository }}
+          format: 'SARIF'
+          out: ${{ env.APP_DIR }}/reports
+          path: ${{ env.APP_DIR }}
+          args: >
+            --disableAssembly
+            --scan ${{ env.APP_DIR }}
+            --exclude "**/.git/**" --exclude "**/node_modules/**" --exclude "**/target/test-classes/**"
+            --disableCentral
+            --disableOssIndex
+            --failOnCVSS ${{ env.ODC_FAIL_CVSS }}
+            --suppression odc-suppressions.xml
+            ${{ steps.sca_args.outputs.odc }}
+
+      - name: Upload dependency scan (SARIF artifact)
+        if: always() && hashFiles(format('{0}/reports/dependency-check-report.sarif', env.APP_DIR)) != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: ${{ env.APP_DIR }}/reports/dependency-check-report.sarif
+          if-no-files-found: ignore
+
+      # Hard gate on ODC findings
+      - name: Fail if Dependency-Check found high/critical issues
+        if: steps.depcheck.outcome == 'failure'
+        run: |
+          echo "❌ Dependency-Check found CVEs >= ${ODC_FAIL_CVSS}. See artifact 'dependency-check-report'."
+          exit 1
+
+      # ---------- Auth to GCP & Docker login ----------
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: Install gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      # ---------- Build container ----------
+      - name: Docker build
+        run: docker build -t "${IMAGE}" -f "${{ env.APP_DIR }}/Dockerfile" "${{ env.APP_DIR }}"
+
+      # If APP_DIR has a .trivyignore, copy it so Trivy picks it up
+      - name: Prepare .trivyignore (optional)
+        run: |
+          if [[ -f "${APP_DIR}/.trivyignore" ]]; then cp "${APP_DIR}/.trivyignore" .; fi
+
+      # ---------- Trivy image scan ----------
+      - name: Trivy image scan
+        id: trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'image'
+          image-ref: ${{ env.IMAGE }}
+          format: 'sarif'
+          output: 'trivy.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          exit-code: ${{ env.TRIVY_EXIT_CODE }}
+
+      - name: Upload Trivy (SARIF artifact)
+        if: always() && hashFiles('trivy.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy.sarif
+          if-no-files-found: ignore
+
+      # Hard gate on Trivy findings
+      - name: Fail if Trivy found high/critical issues
+        if: steps.trivy.outcome == 'failure'
+        run: |
+          echo "❌ Trivy found HIGH/CRITICAL vulnerabilities. See artifact 'trivy-report'."
+          exit 1
+
+      # ---------- Push & sign only if scans passed and not a PR ----------
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: docker push "${IMAGE}"
+
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.5.0
+
+      - name: Cosign sign (keyless)
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: cosign sign --yes "${IMAGE}"
+
+      - name: TODO - bump tag in manifests repo
+        run: echo "Will be added in Step-4."
