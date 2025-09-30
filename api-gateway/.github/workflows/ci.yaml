@@ -54,34 +54,16 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         run: mvn -B -ntp -DskipTests verify
 
-       # Finds and passes your suppression file (in APP_DIR or repo root)
+       # Optional: pass ODC suppression file when present
       - name: Prepare ODC suppression flag
         id: sca_args
         shell: bash
         run: |
-          set -e
-          for f in \
-            "${APP_DIR}/odc-suppressions.xml" \
-            "odc-suppressions.xml" \
-            "${APP_DIR}/dependency-check-suppressions.xml" \
-            "dependency-check-suppressions.xml"
-          do
-            if [[ -f "$f" ]]; then
-              echo "Using suppression file: $f"
-              echo "odc=--suppression $f" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-          echo "No suppression file found"
-          echo "odc=" >> "$GITHUB_OUTPUT"
-
-      # DEBUG: prove the actual versions being used by the build
-      - name: Debug effective Netty/Reactor deps
-        working-directory: ${{ env.APP_DIR }}
-        run: |
-          mvn -q -DskipTests dependency:tree \
-            -Dincludes=io.netty:*,io.projectreactor.netty:* -Dverbose | tee deps.txt
-        continue-on-error: true
+          if [[ -f "${APP_DIR}/odc-suppressions.xml" ]]; then
+            echo "odc=--suppression ${APP_DIR}/odc-suppressions.xml" >> "$GITHUB_OUTPUT"
+          else
+            echo "odc=" >> "$GITHUB_OUTPUT"
+          fi
 
 
       # ---------- OWASP Dependency-Check (SCA) ----------
@@ -104,7 +86,6 @@ jobs:
             --disableCentral
             --disableOssIndex
             --failOnCVSS ${{ env.ODC_FAIL_CVSS }}
-            --suppression odc-suppressions.xml
             ${{ steps.sca_args.outputs.odc }}
 
       - name: Upload dependency scan (SARIF artifact)
@@ -158,6 +139,15 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
           exit-code: ${{ env.TRIVY_EXIT_CODE }}
+
+      - name: Trivy summary (console)
+        run: |
+          trivy image --scanners vuln \
+          --severity HIGH,CRITICAL \
+          --ignore-unfixed \
+          --format table \
+          "${IMAGE}" || true
+
 
       - name: Upload Trivy (SARIF artifact)
         if: always() && hashFiles('trivy.sarif') != ''
