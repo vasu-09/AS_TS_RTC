@@ -30,12 +30,19 @@
                 <java.version>17</java.version>
                 <spring-cloud.version>2024.0.2</spring-cloud.version>
                 <httpclient5.version>5.4.4</httpclient5.version>
-    </properties>
+		        <reactor-netty.version>1.2.13</reactor-netty.version>
+        </properties>
 	<dependencies>
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.boot</groupId>-->
 <!--			<artifactId>spring-boot-starter-web</artifactId>-->
 <!--		</dependency>-->
+		<dependency>
+  			<groupId>org.apache.commons</groupId>
+  			<artifactId>commons-lang3</artifactId>
+  			<version>3.18.0</version> <!-- or newer -->
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -102,7 +109,7 @@
 		</dependency>
 
 	</dependencies>
-	 <dependencyManagement>
+	<dependencyManagement>
                 <dependencies>
                         <dependency>
                                 <groupId>org.springframework.cloud</groupId>
@@ -111,13 +118,34 @@
                                 <type>pom</type>
                                 <scope>import</scope>
                         </dependency>
-                       <dependency>
+					
+						<dependency>
       							<groupId>io.netty</groupId>
       							<artifactId>netty-bom</artifactId>
       							<version>4.1.127.Final</version> <!-- or the latest 4.1.x GA -->
       							<type>pom</type>
       							<scope>import</scope>
 						</dependency>
+					     <dependency>
+                                <groupId>io.projectreactor.netty</groupId>
+                                <artifactId>reactor-netty-core</artifactId>
+                                <version>${reactor-netty.version}</version>
+                        </dependency>
+                        <dependency>
+                                <groupId>io.projectreactor.netty</groupId>
+                                <artifactId>reactor-netty-http</artifactId>
+                                <version>${reactor-netty.version}</version>
+                        </dependency>
+                        <dependency>
+                                <groupId>io.projectreactor.netty</groupId>
+                                <artifactId>reactor-netty-http2</artifactId>
+                                <version>${reactor-netty.version}</version>
+                        </dependency>
+                        <dependency>
+                                <groupId>io.projectreactor.netty</groupId>
+                                <artifactId>reactor-netty-http-brave</artifactId>
+                                <version>${reactor-netty.version}</version>
+                        </dependency>
                 </dependencies>
         </dependencyManagement>
 
