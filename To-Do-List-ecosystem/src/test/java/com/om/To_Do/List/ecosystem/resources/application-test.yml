@@ -13,18 +13,29 @@ spring:
   sql:
     init:
       mode: never
+  data:
+    redis:
+      repositories:
+        enabled: false
   cloud:
     kubernetes:
       enabled: false
       discovery:
         enabled: false
+    discovery:
+      enabled: false
+    openfeign:
+      client:
+        config:
+          authentication-service:
+            url: http://localhost:0
+  main:
+    allow-bean-definition-overriding: true
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
-  main:
-    allow-bean-definition-overriding: true
 logging:
   level:
     org:
