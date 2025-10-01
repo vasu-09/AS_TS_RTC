@@ -98,7 +98,7 @@ public class ToDoListService {
             item.setSubQuantitiesJson(serializeSubQuantities(dto.getSubQuantities()));
             item.setList(list);
             return item;
-        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        }).toList();
 
         toDoItemRepository.saveAll(items);
         list.setItems(items);
@@ -124,7 +124,7 @@ public class ToDoListService {
             item.setSubQuantitiesJson(null);
             item.setList(list);
             return item;
-        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        }).toList();
 
         toDoItemRepository.saveAll(items);
         list.setItems(items);

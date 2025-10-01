@@ -52,8 +52,8 @@ public class ToDoList {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.listType = listType;
-        setItems(items);
-        setRecipients(recipients);
+        this.items = items != null ? items : new ArrayList<>();
+        this.recipients = recipients != null ? recipients : new ArrayList<>();
     }
 
 
@@ -110,21 +110,16 @@ public class ToDoList {
     }
 
     public void setItems(List<ToDoItem> items) {
-        this.items.clear();
-        if (items != null) {
-            this.items.addAll(items);
-        }
-    }
+    this.items =items;
+}
 
     public List<ListRecipient> getRecipients() {
         return recipients;
     }
 
     public void setRecipients(List<ListRecipient> recipients) {
-        this.recipients.clear();
-        if (recipients != null) {
-            this.recipients.addAll(recipients);
-        }
+       this.recipients=recipients;
+    
     }
 }
 

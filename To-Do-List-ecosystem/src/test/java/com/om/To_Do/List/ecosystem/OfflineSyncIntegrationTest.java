@@ -4,7 +4,6 @@ import com.om.To_Do.List.ecosystem.client.UserServiceClient;
 import com.om.To_Do.List.ecosystem.dto.CreateChecklistRequest;
 import com.om.To_Do.List.ecosystem.dto.ToDoListSummaryDTO;
 import com.om.To_Do.List.ecosystem.dto.UpdateChecklistItemRequest;
-import com.om.To_Do.List.ecosystem.client.UserServiceClient;
 import com.om.To_Do.List.ecosystem.model.ToDoItem;
 import com.om.To_Do.List.ecosystem.model.ToDoList;
 import com.om.To_Do.List.ecosystem.repository.ToDoItemRepository;
@@ -18,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,7 +47,7 @@ public class OfflineSyncIntegrationTest {
         CreateChecklistRequest request = new CreateChecklistRequest();
         request.setCreatedByUserId(1L);
         request.setTitle("Groceries");
-        request.setItems(List.of(new CreateChecklistRequest.ChecklistItemDTO("Milk")));
+        request.setItems(new ArrayList<>(List.of(new CreateChecklistRequest.ChecklistItemDTO("Milk"))));
 
         ToDoList list = toDoListService.createChecklist(request);
         Long listId = list.getId();
