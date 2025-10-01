@@ -59,7 +59,7 @@
 		<dependency>
             <groupId>com.razorpay</groupId>
             <artifactId>razorpay-java</artifactId>
-            version>1.4.8</version>
+            <version>1.4.8</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.vaadin.external.google</groupId>
