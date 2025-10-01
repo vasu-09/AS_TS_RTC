@@ -74,13 +74,13 @@ public class ToDoListService {
     // Step 1: Create list without recipients
     @Transactional
     public ToDoList createList(CreateListRequest request) throws AccessDeniedException {
-//        // 🔒 Require active subscription for this endpoint
-//        boolean active = paymentService.isSubscriptionActive(request.getCreatedByUserId());
-//        if (!active) {
-//            throw new AccessDeniedException(
-//                    "Subscription required to create priced lists. " +
-//                            "Use /api/lists/checklist for simple item-only lists.");
-//        }
+       // 🔒 Require active subscription for this endpoint
+       boolean active = paymentService.isSubscriptionActive(request.getCreatedByUserId());
+       if (!active) {
+           throw new AccessDeniedException(
+                   "Subscription required to create priced lists. " +
+                           "Use /api/lists/checklist for simple item-only lists.");
+       }
 
         ToDoList list = new ToDoList();
         list.setCreatedByUserId(request.getCreatedByUserId());
@@ -353,12 +353,12 @@ public class ToDoListService {
         // 1) verify list exists
         ToDoList list = toDoListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List not found"));
-//        boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
-//        if (!active) {
-//            throw new AccessDeniedException(
-//                    "Subscription required to create priced lists. " +
-//                            "Use /api/lists/checklist for simple item-only lists.");
-//        }
+       boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
+       if (!active) {
+           throw new AccessDeniedException(
+                   "Subscription required to create priced lists. " +
+                           "Use /api/lists/checklist for simple item-only lists.");
+       }
         // 2) load the item
         ToDoItem item = toDoItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
@@ -404,12 +404,12 @@ public class ToDoListService {
 
         ToDoList list = toDoListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List not found"));
-//        boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
-//        if (!active) {
-//            throw new AccessDeniedException(
-//                    "Subscription required to create priced lists. " +
-//                            "Use /api/lists/checklist for simple item-only lists.");
-//        }
+       boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
+       if (!active) {
+           throw new AccessDeniedException(
+                   "Subscription required to create priced lists. " +
+                           "Use /api/lists/checklist for simple item-only lists.");
+       }
 
         if (!list.getCreatedByUserId().equals(userId)) {
             throw new AccessDeniedException("Only the meeting creator can update this meeting.");
@@ -566,12 +566,12 @@ public class ToDoListService {
 
         ToDoList list = toDoListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List not found"));
-//        boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
-//        if (!active) {
-//            throw new AccessDeniedException(
-//                    "Subscription required to create priced lists. " +
-//                            "Use /api/lists/checklist for simple item-only lists.");
-//        }
+       boolean active = paymentService.isSubscriptionActive(list.getCreatedByUserId());
+       if (!active) {
+           throw new AccessDeniedException(
+                   "Subscription required to create priced lists. " +
+                           "Use /api/lists/checklist for simple item-only lists.");
+       }
         // 2) load the item
         ToDoItem item = toDoItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));

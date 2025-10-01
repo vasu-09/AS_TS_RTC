@@ -34,6 +34,7 @@ public class Subscription {
     private Boolean isActive;
 
     // New fields for failure tracking:
+    @Builder.Default
     private Integer failureCount = 0;
     private LocalDateTime lastFailureAt;
 

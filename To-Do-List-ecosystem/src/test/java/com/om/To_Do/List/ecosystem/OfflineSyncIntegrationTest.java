@@ -3,25 +3,49 @@ package com.om.To_Do.List.ecosystem;
 import com.om.To_Do.List.ecosystem.dto.CreateChecklistRequest;
 import com.om.To_Do.List.ecosystem.dto.ToDoListSummaryDTO;
 import com.om.To_Do.List.ecosystem.dto.UpdateChecklistItemRequest;
+import com.om.To_Do.List.ecosystem.client.UserServiceClient;
 import com.om.To_Do.List.ecosystem.model.ToDoItem;
 import com.om.To_Do.List.ecosystem.model.ToDoList;
 import com.om.To_Do.List.ecosystem.repository.ToDoItemRepository;
 import com.om.To_Do.List.ecosystem.services.ToDoListService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Transactional
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 public class OfflineSyncIntegrationTest {
 
     @Autowired
     private ToDoListService toDoListService;
+
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+    @TestConfiguration
+    static class OfflineSyncIntegrationTestConfig {
+        @Bean
+        @Primary
+        UserServiceClient userServiceClient() {
+            return Mockito.mock(UserServiceClient.class);
+        }
+    }
+
 
 
     @Autowired
@@ -29,6 +53,9 @@ public class OfflineSyncIntegrationTest {
 
     @Test
     void offlineChangesAreSyncedAndServerUpdatesFetched() throws Exception {
+        when(userServiceClient.getUseridByPhoneNumber("919988776611"))
+                .thenReturn(ResponseEntity.ok(1L));
+
         // Create initial checklist with a single item while online
         CreateChecklistRequest request = new CreateChecklistRequest();
         request.setCreatedByUserId(1L);

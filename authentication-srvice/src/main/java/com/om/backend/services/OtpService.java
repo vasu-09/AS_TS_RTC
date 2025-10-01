@@ -88,18 +88,14 @@ public class OtpService {
         Duration ttl = Duration.ofMinutes(props.getOtp().getTtlMinutes());
         redis.opsForValue().set(otpKey(e164), otp, ttl);
 
-        // 4) optionally persist to the relational store for audit purposes only
-        if (isAuditEnabled()) {
-            Optional.ofNullable(otpRepo)
-                    .ifPresent(repo -> {
-                        Otp row = repo.findByPhoneNumber(e164).orElseGet(Otp::new);
-                        row.setPhoneNumber(e164);
-                        row.setOtpCode(otp);
-                        row.setCreatedAt(Instant.now(clock));
-                        row.setExpiredAt(Instant.now(clock).plus(ttl));
-                        repo.save(row);
-                    });
-        }
+        // 4) (optional) also persist to DB for audit/troubleshooting (comment out if not needed)
+
+            Otp row = otpRepo.findByPhoneNumber(e164).orElseGet(Otp::new);
+            row.setPhoneNumber(e164);
+            row.setOtpCode(otp);
+            row.setCreatedAt(Instant.now(clock));
+            row.setExpiredAt(Instant.now(clock).plus(ttl));
+            otpRepo.save(row);
 
         // Send via your SMS provider
         SendSmsResponse res = smsClient.sendOtpMessage(messageBuilder.build(otp), providerMobile, true);
@@ -138,9 +134,6 @@ public class OtpService {
             redis.delete(key);
         } else {
             // Optional DB fallback when auditing is enabled
-               if (!isAuditEnabled() || otpRepo == null) {
-                throw new IllegalArgumentException("OTP expired or not requested");
-            }
             Optional<Otp> audit = otpRepo.findByPhoneNumber(e164);
             if (audit.isEmpty() || Instant.now(clock).isAfter(audit.get().getExpiredAt())) {
                 throw new IllegalArgumentException("OTP expired or not requested");
@@ -232,9 +225,6 @@ public class OtpService {
             builder.append(RANDOM.nextInt(10));
         }
         return builder.toString();
-    }
-     private boolean isAuditEnabled() {
-        return props.getOtp().isPersistForAudit();
     }
 
         /** Minimal signer abstraction expected to be provided elsewhere in your app. */
