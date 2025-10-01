@@ -1,44 +1,33 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:todo_test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:todolist;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
-    password:
+    password: ""
+    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+  sql:
+    init:
+      mode: never
   cloud:
     kubernetes:
+      enabled: false
       discovery:
         enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
   main:
     allow-bean-definition-overriding: true
-  test:
-    database:
-      replace: none
-
 logging:
   level:
     org:
       springframework:
-        security: WARN
-
-razorpay:
-  key: test
-  secret: test
-  webhookSecret: test
-
-payment:
-  token:
-    secret: 0123456789abcdef
-
-security:
-  oauth2:
-    resourceserver:
-      jwt:
-        jwk-set-uri: http://localhost/jwks.json
-        issuer-uri: http://localhost
+        cloud:
+          kubernetes: OFF
