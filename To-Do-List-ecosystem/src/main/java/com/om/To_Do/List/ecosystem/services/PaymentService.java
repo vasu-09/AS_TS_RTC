@@ -309,7 +309,14 @@ public class PaymentService {
     public boolean isSubscriptionActive(Long userId) {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         return subscriptionRepo.findByUserId(userId)
-                .map(s -> s.getActive() && s.getExpiryDate() != null && !s.getExpiryDate().isBefore(today))
+                .map(sub -> {
+                    boolean activeFlag = Boolean.TRUE.equals(sub.getActive());
+                    LocalDate expiry = sub.getExpiryDate();
+                    if (!activeFlag || expiry == null) {
+                        return false;
+                    }
+                    return !expiry.isBefore(today);
+                })
                 .orElse(false);
     }
 }
