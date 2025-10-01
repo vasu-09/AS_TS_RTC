@@ -3,6 +3,7 @@ package com.om.To_Do.List.ecosystem;
 import com.om.To_Do.List.ecosystem.dto.CreateChecklistRequest;
 import com.om.To_Do.List.ecosystem.dto.ToDoListSummaryDTO;
 import com.om.To_Do.List.ecosystem.dto.UpdateChecklistItemRequest;
+import com.om.To_Do.List.ecosystem.client.UserServiceClient;
 import com.om.To_Do.List.ecosystem.model.ToDoItem;
 import com.om.To_Do.List.ecosystem.model.ToDoList;
 import com.om.To_Do.List.ecosystem.repository.ToDoItemRepository;
@@ -10,18 +11,26 @@ import com.om.To_Do.List.ecosystem.services.ToDoListService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Transactional
 public class OfflineSyncIntegrationTest {
 
     @Autowired
     private ToDoListService toDoListService;
+
+    @MockBean
+    private UserServiceClient userServiceClient;
 
 
     @Autowired
@@ -29,6 +38,9 @@ public class OfflineSyncIntegrationTest {
 
     @Test
     void offlineChangesAreSyncedAndServerUpdatesFetched() throws Exception {
+        when(userServiceClient.getUseridByPhoneNumber("919988776611"))
+                .thenReturn(ResponseEntity.ok(1L));
+
         // Create initial checklist with a single item while online
         CreateChecklistRequest request = new CreateChecklistRequest();
         request.setCreatedByUserId(1L);
