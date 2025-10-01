@@ -14,7 +14,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.whispersystems.signalservice.api.push.SignedPreKeyEntity;
 
 import java.time.Instant;
 import java.util.List;
