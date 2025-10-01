@@ -1,14 +1,12 @@
 package com.om.To_Do.List.ecosystem.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-import org.springframework.format.annotation.DateTimeFormat;
-
 
 @Entity
 @Data
@@ -23,6 +21,7 @@ public class Subscription {
     // Tokenized payment details for recurring billing
     private String customerId;       // Razorpay customer ID
     private String paymentToken;     // Token/mandate ID returned by Razorpay
+
 
     @JsonFormat(pattern = "yyyy-MM-dd")                // for JSON in/out
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)     // for Spring MVC binding
@@ -54,6 +53,7 @@ public class Subscription {
         this.failureCount = failureCount;
         this.lastFailureAt = lastFailureAt;
     }
+
 
 
     public Long getUserId() {

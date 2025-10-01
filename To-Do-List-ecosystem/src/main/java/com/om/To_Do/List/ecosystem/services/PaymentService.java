@@ -285,9 +285,18 @@ public class PaymentService {
             failures++;
             sub.setFailureCount(failures);
             sub.setLastFailureAt(now);
-            // Immediate downgrade after 3 consecutive failures
-            if (failures >= 3) {
-                sub.setActive(false);
+            // RBI/NPCI guidelines require mandate suspension on any failed debit.
+            // Immediately revoke premium access so paywall-enforced features block
+            // until the user successfully retries the payment and we receive
+            // another `invoice.paid`/`subscription.activated` event.
+            sub.setActive(false);
+            // We also clamp expiry to "now" so subsequent checks treat the
+            // subscription as lapsed even if the previous expiry date was in the
+            // future. This keeps the access check deterministic in unit tests and
+            // mirrors the production expectation.
+            LocalDate today = LocalDate.now(IST);
+            if (sub.getExpiryDate() == null || sub.getExpiryDate().isAfter(today)) {
+                sub.setExpiryDate(today);
             }
             subscriptionRepo.save(sub);
         });
@@ -309,7 +318,7 @@ public class PaymentService {
     public boolean isSubscriptionActive(Long userId) {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         return subscriptionRepo.findByUserId(userId)
-                .map(sub -> {
+               .map(sub -> {
                     boolean activeFlag = Boolean.TRUE.equals(sub.getActive());
                     LocalDate expiry = sub.getExpiryDate();
                     if (!activeFlag || expiry == null) {

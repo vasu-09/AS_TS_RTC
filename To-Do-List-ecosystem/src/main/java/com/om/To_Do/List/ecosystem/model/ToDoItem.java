@@ -41,7 +41,7 @@ public class ToDoItem {
     public ToDoItem() {
     }
 
-   public ToDoItem(Long id, String itemName, String quantity, String priceText,
+    public ToDoItem(Long id, String itemName, String quantity, String priceText,
                     LocalDateTime createdAt, LocalDateTime updatedAt,
                     String subQuantitiesJson, ToDoList list) {
         this.id = id;
