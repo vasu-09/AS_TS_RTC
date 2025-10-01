@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -32,12 +33,13 @@ public class ToDoList {
     @Enumerated(EnumType.STRING)
     private ListType listType;
 
-
+    @Builder.Default
     @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ToDoItem> items;
-
+    private List<ToDoItem> items = new ArrayList<>();
+    @Builder.Default
     @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ListRecipient> recipients;
+    private List<ListRecipient> recipients = new ArrayList<>();
+
 
     public ToDoList() {
     }
@@ -50,8 +52,8 @@ public class ToDoList {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.listType = listType;
-        this.items = items;
-        this.recipients = recipients;
+        setItems(items);
+        setRecipients(recipients);
     }
 
 
@@ -108,7 +110,10 @@ public class ToDoList {
     }
 
     public void setItems(List<ToDoItem> items) {
-        this.items = items;
+        this.items.clear();
+        if (items != null) {
+            this.items.addAll(items);
+        }
     }
 
     public List<ListRecipient> getRecipients() {
@@ -116,7 +121,10 @@ public class ToDoList {
     }
 
     public void setRecipients(List<ListRecipient> recipients) {
-        this.recipients = recipients;
+        this.recipients.clear();
+        if (recipients != null) {
+            this.recipients.addAll(recipients);
+        }
     }
 }
 

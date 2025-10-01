@@ -19,8 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -97,9 +98,10 @@ public class ToDoListService {
             item.setSubQuantitiesJson(serializeSubQuantities(dto.getSubQuantities()));
             item.setList(list);
             return item;
-        }).toList();
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
         toDoItemRepository.saveAll(items);
+        list.setItems(items);
         return list;
     }
 
@@ -122,9 +124,10 @@ public class ToDoListService {
             item.setSubQuantitiesJson(null);
             item.setList(list);
             return item;
-        }).toList();
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
         toDoItemRepository.saveAll(items);
+        list.setItems(items);
         return list;
     }
 
@@ -248,7 +251,12 @@ public class ToDoListService {
         dto.setUpdatedAt(list.getUpdatedAt());
         dto.setCreatedByUserId(list.getCreatedByUserId());
 
-        List<ToDoItemRes> itemDTOs = list.getItems().stream().map(item -> {
+        List<ToDoItem> items = list.getItems();
+        if (items == null) {
+            items = Collections.emptyList();
+        }
+
+        List<ToDoItemRes> itemDTOs = items.stream().map(item -> {
             ToDoItemRes itemDTO = new ToDoItemRes();
             itemDTO.setId(item.getId());
             itemDTO.setItemName(item.getItemName());
@@ -288,7 +296,12 @@ public class ToDoListService {
         dto.setListType(list.getListType().name());
         dto.setUpdatedAt(list.getUpdatedAt());
         dto.setCreatedAt(list.getCreatedAt());
-        List<ToDoItemRes> itemDTOs = list.getItems().stream().map(item -> {
+        List<ToDoItem> items = list.getItems();
+        if (items == null) {
+            items = Collections.emptyList();
+        }
+
+        List<ToDoItemRes> itemDTOs = items.stream().map(item -> {
             ToDoItemRes itemDTO = new ToDoItemRes();
             itemDTO.setId(item.getId());
             itemDTO.setUpdatedAt(item.getUpdatedAt());
