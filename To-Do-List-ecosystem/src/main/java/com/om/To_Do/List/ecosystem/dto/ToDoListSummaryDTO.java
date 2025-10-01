@@ -3,13 +3,14 @@ package com.om.To_Do.List.ecosystem.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 public class ToDoListSummaryDTO {
     private Long id;
     private String title;
-    private List<ToDoItemRes> items;
+    private List<ToDoItemRes> items = new ArrayList<>();
     private String listType;
     private LocalDateTime createdAt;
     private Long createdByUserId;
@@ -21,7 +22,7 @@ public class ToDoListSummaryDTO {
     public ToDoListSummaryDTO(Long id,String title, List<ToDoItemRes> items, String listType, LocalDateTime  createdAt, LocalDateTime  updatedAt, Long createdByUserId) {
         this.id=id;
         this.title = title;
-        this.items = items;
+        setItems(items);
         this.listType = listType;
         this.createdAt=createdAt;
         this.updatedAt=updatedAt;
@@ -82,6 +83,10 @@ public class ToDoListSummaryDTO {
     }
 
     public void setItems(List<ToDoItemRes> items) {
-        this.items = items;
+         if (items == null) {
+            this.items = new ArrayList<>();
+        } else {
+            this.items = new ArrayList<>(items);
+        }
     }
 }

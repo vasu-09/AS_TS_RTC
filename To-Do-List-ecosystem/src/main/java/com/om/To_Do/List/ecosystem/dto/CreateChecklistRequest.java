@@ -1,14 +1,15 @@
 package com.om.To_Do.List.ecosystem.dto;
 
-import lombok.Data;
-
+import lombok.*;
+import java.util.ArrayList;
 import java.util.List;
+
 
 @Data
 public class CreateChecklistRequest {
     private Long createdByUserId;
     private String title;
-    private List<ChecklistItemDTO> items;
+    private List<ChecklistItemDTO> items = new ArrayList<>();
 
     public CreateChecklistRequest() {
     }
@@ -16,7 +17,7 @@ public class CreateChecklistRequest {
     public CreateChecklistRequest(Long createdByUserId, String title, List<ChecklistItemDTO> items) {
         this.createdByUserId = createdByUserId;
         this.title = title;
-        this.items = items;
+        setItems(items);
     }
 
     public Long getCreatedByUserId() {
@@ -40,7 +41,11 @@ public class CreateChecklistRequest {
     }
 
     public void setItems(List<ChecklistItemDTO> items) {
-        this.items = items;
+        if (items == null) {
+            this.items = new ArrayList<>();
+        } else {
+            this.items = new ArrayList<>(items);
+        }
     }
 
     @Data

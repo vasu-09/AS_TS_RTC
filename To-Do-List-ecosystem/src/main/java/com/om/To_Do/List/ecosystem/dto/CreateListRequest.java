@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Setter
@@ -14,7 +15,7 @@ public class CreateListRequest {
 
     private Long createdByUserId;
     private String title;
-    private List<ToDoItemDTO> items;
+    private List<ToDoItemDTO> items = new ArrayList<>();
 
     public CreateListRequest() {
     }
@@ -22,7 +23,7 @@ public class CreateListRequest {
     public CreateListRequest(Long createdByUserId, String title, List<ToDoItemDTO> items) {
         this.createdByUserId = createdByUserId;
         this.title = title;
-        this.items = items;
+        setItems(items);
     }
 
     public Long getCreatedByUserId() {
@@ -46,6 +47,10 @@ public class CreateListRequest {
     }
 
     public void setItems(List<ToDoItemDTO> items) {
-        this.items = items;
+            if (items == null) {
+            this.items = new ArrayList<>();
+        } else {
+            this.items = new ArrayList<>(items);
+        }
     }
 }

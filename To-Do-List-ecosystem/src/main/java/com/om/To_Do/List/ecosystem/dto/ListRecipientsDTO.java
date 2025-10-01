@@ -1,13 +1,14 @@
 package com.om.To_Do.List.ecosystem.dto;
 
 import lombok.Data;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 public class ListRecipientsDTO {
     private Long listId;
     private String title;
-    private List<Long> recipientUserIds;
+    private List<Long> recipientUserIds = new ArrayList<>();
 
     public ListRecipientsDTO() {
     }
@@ -15,7 +16,7 @@ public class ListRecipientsDTO {
     public ListRecipientsDTO(Long listId, String title, List<Long> recipientUserIds) {
         this.listId = listId;
         this.title = title;
-        this.recipientUserIds = recipientUserIds;
+        setRecipientUserIds(recipientUserIds);
     }
 
     public Long getListId() {
@@ -39,6 +40,10 @@ public class ListRecipientsDTO {
     }
 
     public void setRecipientUserIds(List<Long> recipientUserIds) {
-        this.recipientUserIds = recipientUserIds;
+        if (recipientUserIds == null) {
+            this.recipientUserIds = new ArrayList<>();
+        } else {
+            this.recipientUserIds = new ArrayList<>(recipientUserIds);
+        }
     }
 }
