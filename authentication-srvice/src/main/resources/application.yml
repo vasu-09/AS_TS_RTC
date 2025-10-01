@@ -25,7 +25,6 @@ spring:
       ddl-auto: update
     show-sql: ${SPRING_JPA_SHOW_SQL:false}
 
-
 server:
   port: ${SERVER_PORT:8092}
 
@@ -38,13 +37,12 @@ sms:
   transport: JSON           # if it still fails, try FORM
   dlt:
     template-id: ${SMS_DLT_TEMPLATE_ID:1407175378487206260}
-    content: ${SMS_DLT_CONTENT:Your MOC OTP is {#var#}.It is valid for 10 minutes.Do not share this OTP with anyone for security reasons from MOC Connect Private Limited.}
+    content: ${SMS_DLT_CONTENT:Your MOC OTP is {#var#}.It is valid for 10 minutes.Do not share this OTP with anyone for reasons from MOC Connect Private Limited.}
   otp:
     ttl-minutes: ${SMS_OTP_TTL_MINUTES:10}
     digits: ${SMS_OTP_DIGITS:6}
     per-minute-limit: ${SMS_OTP_PER_MINUTE_LIMIT:1}
     per-hour-limit: ${SMS_OTP_PER_HOUR_LIMIT:5}
-
 
 jwt:
   alg: RS256
@@ -52,7 +50,7 @@ jwt:
   kid: ${JWT_KID::main-2025-08-16}                  # any stable ID for this key
   audience: ${JWT_AUDIENCE:}
   private-key-pem: ${JWT_PRIVATE_KEY_PEM:}
-# optional rotation support (publish old public key alongside the new one)
+  # optional rotation support (publish old public key alongside the new one)
   previous-kid: ${JWT_PREV_KID:}
   previous-public-pem: ${JWT_PREV_PUB_PEM:}
   access-ttl-min: ${JWT_ACCESS_TTL_MIN:15}
@@ -70,7 +68,6 @@ avatar:
   max-size-bytes: ${AVATAR_MAX_SIZE_BYTES:5242880}      # 5 MB
   put-url-ttl-seconds: ${AVATAR_PUT_TTL_SECONDS:600}
   get-url-ttl-seconds: ${AVATAR_GET_TTL_SECONDS:600}
-
 
 # Keep this custom and read it in a @ConfigurationProperties or @Value
 cors:

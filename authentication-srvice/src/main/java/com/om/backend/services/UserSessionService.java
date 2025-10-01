@@ -23,12 +23,13 @@ import java.util.stream.Collectors;
 public class UserSessionService {
 
 
-    @Autowired
-    private UserRepository userRepository;
+   private final UserRepository userRepository;
     private final UserSessionRepository sessionRepo;
 
 
-    public UserSessionService(UserSessionRepository sessionRepo){
+   @Autowired
+    public UserSessionService(UserRepository userRepository, UserSessionRepository sessionRepo){
+        this.userRepository = userRepository;
         this.sessionRepo = sessionRepo;
     }
 

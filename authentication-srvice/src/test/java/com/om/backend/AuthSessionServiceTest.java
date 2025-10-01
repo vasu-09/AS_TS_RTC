@@ -82,7 +82,7 @@ class AuthSessionServiceTest {
 
         OtpService.JwtSigner signer = new DummySigner(clock);
         otpService = new OtpService(redis, props, sms, builder, otpRepo, userRepo, signer, clock);
-        sessionService = new UserSessionService(sessionRepo);
+        sessionService = new UserSessionService(userRepo, sessionRepo);
     }
 
     static class DummySigner implements OtpService.JwtSigner {

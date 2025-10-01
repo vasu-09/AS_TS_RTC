@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import java.util.concurrent.atomic.AtomicLong;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -40,13 +41,15 @@ public class OtpServiceTest {
     private SmsProperties props;
     private OtpRepository otpRepo;
     private UserRepository userRepo;
-    private JwtSigner jwtSigner;
     private Clock clock;
     private OtpService service;
 
     Map<String, String> store;
     Map<String, Long> expires;
     Map<String, Long> counters;
+    Map<Long, User> usersById;
+    Map<String, User> usersByPhone;
+    AtomicLong userIdSeq;
 
 
     @BeforeEach
@@ -54,12 +57,17 @@ public class OtpServiceTest {
         store = new HashMap<>();
         expires = new HashMap<>();
         counters = new HashMap<>();
+        usersById = new HashMap<>();
+        usersByPhone = new HashMap<>();
+        userIdSeq = new AtomicLong(1);
         clock = Clock.fixed(Instant.parse("2023-01-01T00:00:00Z"), ZoneOffset.UTC);
 
         // mock redis
         StringRedisTemplate redis = Mockito.mock(StringRedisTemplate.class);
         ValueOperations<String,String> valueOps = Mockito.mock(ValueOperations.class);
         Mockito.when(redis.opsForValue()).thenReturn(valueOps);
+        this.redis = redis;
+        this.valueOps = valueOps;
 
         Mockito.doAnswer(inv -> {
             String key = inv.getArgument(0);
@@ -106,16 +114,34 @@ public class OtpServiceTest {
         props.getOtp().setPerMinuteLimit(5);
         props.getOtp().setPerHourLimit(5);
         props.getDlt().setContent("OTP {#var#}");
+        this.props = props;
 
-        SmsClient sms = Mockito.mock(SmsClient.class);
+        otpRepo = Mockito.mock(OtpRepository.class);
+
+        userRepo = Mockito.mock(UserRepository.class);
+        Mockito.when(userRepo.findByPhoneNumber(anyString())).thenAnswer(inv ->
+                Optional.ofNullable(usersByPhone.get(inv.getArgument(0))));
+        Mockito.when(userRepo.save(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            if (u.getId() == null) {
+                u.setId(userIdSeq.getAndIncrement());
+            }
+            usersById.put(u.getId(), u);
+            usersByPhone.put(u.getPhoneNumber(), u);
+            return u;
+        });
+        Mockito.when(userRepo.findById(anyLong())).thenAnswer(inv ->
+                Optional.ofNullable(usersById.get(inv.getArgument(0))));        SmsClient sms = Mockito.mock(SmsClient.class);
         Mockito.when(sms.sendOtpMessage(anyString(), anyString(), anyBoolean())).thenReturn(new SendSmsResponse());
 
         OtpMessageBuilder builder = Mockito.mock(OtpMessageBuilder.class);
         Mockito.when(builder.build(anyString())).thenAnswer(i -> "OTP:"+i.getArgument(0));
+        otpRepo = Mockito.mock(OtpRepository.class);
+        userRepo = Mockito.mock(UserRepository.class);
 
         OtpService.JwtSigner signer = new DummySigner(clock);
 
-        service = new OtpService(redis, props, sms, builder, otpRepo, userRepo, signer, clock);
+        service = new OtpService(this.redis, this.props, sms, builder, otpRepo, userRepo, signer, clock);
     }
 
     static class DummySigner implements OtpService.JwtSigner {
@@ -218,7 +244,7 @@ public class OtpServiceTest {
         Mockito.when(redis.delete(anyString())).thenAnswer(inv->{String k=inv.getArgument(0);s.remove(k);e.remove(k);c.remove(k);return true;});
         service = new OtpService(redis, props, sms, builder, otpRepo, userRepo, new DummySigner(clock), clock);
 
-        String phone = "5555555555";
+        String phone = "7555555555";
         service.sendOtp(phone);
         assertThrows(IllegalStateException.class, () -> service.sendOtp(phone));
     }

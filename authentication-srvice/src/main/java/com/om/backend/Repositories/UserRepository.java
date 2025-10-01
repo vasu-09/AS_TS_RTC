@@ -15,14 +15,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByPhoneNumber(String phoneNumber);
 
-    @Query(value = "SELECT u.id FROM \\\"user\\\" u WHERE u.phone_number IN (:phoneNumbers)", nativeQuery = true)
+    @Query(value = "SELECT u.id FROM users u WHERE u.phone_number IN (:phoneNumbers)", nativeQuery = true)
     List<Long> findIdsByPhoneNumbers(@Param("phoneNumbers") List<String> phoneNumbers);
 
-    @Query(value = "SELECT u.id FROM \\\"user\\\" u WHERE u.phone_number = :phoneNumber", nativeQuery = true)
+    @Query(value = "SELECT u.id FROM users u WHERE u.phone_number = :phoneNumber", nativeQuery = true)
     Long findUserIdByPhoneNumber(@Param("phoneNumber") String phoneNumber);
-    @Query(value = "SELECT u.phone_number FROM \\\"user\\\"` u WHERE u.id = :id", nativeQuery = true)
+    @Query(value = "SELECT u.phone_number FROM users u WHERE u.id = :id", nativeQuery = true)
     String findPhoneNumberByuserID(@Param("id") Long id);
-    @Query(value = "SELECT u.phone_number FROM \\\"user\\\" u WHERE u.id IN (:id)", nativeQuery = true)
+    @Query(value = "SELECT u.phone_number FROM users u WHERE u.id IN (:id)", nativeQuery = true)
     List<String> findPhoneNumbersByIds(@Param("id") List<Long> id);
 
     List<User> findByPhoneNumberIn(List<String> e164Phones);

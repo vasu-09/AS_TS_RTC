@@ -1,0 +1,114 @@
+name: PR CI (safe)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+concurrency:
+  group: pr-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  AR_REPO: moc-repo
+  AR_HOST: asia-south1-docker.pkg.dev
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changed.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: changed
+        run: |
+          set -euo pipefail
+          SVC=""
+          while IFS= read -r df; do
+            mod="$(dirname "$df")"
+            [ -f "$mod/pom.xml" ] || continue
+            SVC+="${mod}\n"
+          done < <(git ls-files */Dockerfile)
+          printf "services<<EOF\n%s\nEOF\n" "$(printf "%b" "$SVC")" >> "$GITHUB_OUTPUT"
+
+  build-test-scan:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.services != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(toJson(needs.detect-changes.outputs.services)) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Unit tests
+        working-directory: ${{ matrix.service }}
+        run: mvn -B -DskipTests=false test
+
+      - name: Login to Artifact Registry (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: Configure Docker to use gcloud
+        run: gcloud auth configure-docker ${{ env.AR_HOST }} --quiet
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/$(basename ${{ matrix.service }})
+          tags: |
+            type=raw,value=pr-${{ github.event.number }}
+            type=sha
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push on PR)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service }}
+          file: ${{ matrix.service }}/Dockerfile
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          artifact-name: sbom-${{ matrix.service }}.spdx.json
+
+      - name: Vulnerability scan (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: table
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Summary
+        run: |
+          {
+            echo "## ${matrix.service}"
+            echo "- Image tags: ${{ steps.meta.outputs.tags }}"
+          } >> "$GITHUB_STEP_SUMMARY"

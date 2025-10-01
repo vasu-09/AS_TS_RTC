@@ -230,7 +230,10 @@ public class UserService {
 
     @Transactional
     public void clearChatMute(Long userId, Long chatId) {
-        ucpRepo.deleteByUserIdAndChatId(userId, chatId);
+        ucpRepo.findByUserIdAndChatId(userId, chatId).ifPresent(pref -> {
+            ucpRepo.delete(pref);
+            ucpRepo.flush();
+        });
     }
 
     // -------- Phone helpers (if you already exposed these in your controller) --------
