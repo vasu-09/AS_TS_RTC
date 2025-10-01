@@ -1,10 +1,10 @@
 spring:
-   cloud:
-    discovery:
+  cloud:
+   discovery:
       enabled: false
-    kubernetes:
+   kubernetes:
       discovery:
-        enabled: false
+        enabled: false 
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
     username: sa
@@ -43,7 +43,8 @@ jwt:
     -----END PRIVATE KEY-----
   access-ttl-min: 15
   refresh-ttl-days: 30
-
-  app:
+app:
   clock:
     zone: Asia/Kolkata
+app:
+  issuer: test
