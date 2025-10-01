@@ -13,13 +13,12 @@ spring:
   sql:
     init:
       mode: never
-    cloud:
+ cloud:
+    discovery:
+      enabled: false
+    kubernetes:
       discovery:
         enabled: false
-      kubernetes:
-        discovery:
-          enabled: false
-
 jwt:
   alg: RS256
   issuer: test
@@ -43,3 +42,7 @@ jwt:
     -----END PRIVATE KEY-----
   access-ttl-min: 15
   refresh-ttl-days: 30
+
+  app:
+  clock:
+    zone: Asia/Kolkata
