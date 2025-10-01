@@ -10,6 +10,7 @@ import com.om.To_Do.List.ecosystem.services.PaymentService;
 import com.om.To_Do.List.ecosystem.services.ToDoListService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -49,6 +50,7 @@ public class ToDoListServiceAccessTest {
         ReflectionTestUtils.setField(toDoListService, "eventPublisher", Mockito.mock(ApplicationEventPublisher.class));
 //        ReflectionTestUtils.setField(toDoListService, "userServiceClient", Mockito.mock(UserServiceClient.class));
         ReflectionTestUtils.setField(toDoListService, "paymentService", paymentService);
+        ReflectionTestUtils.setField(toDoListService, "objectMapper", new ObjectMapper());
     }
 
     private String sign(String payload) {
