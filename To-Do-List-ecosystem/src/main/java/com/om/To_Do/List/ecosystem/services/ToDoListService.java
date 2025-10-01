@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import java.util.stream.Collectors;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
@@ -98,7 +99,7 @@ public class ToDoListService {
             item.setSubQuantitiesJson(serializeSubQuantities(dto.getSubQuantities()));
             item.setList(list);
             return item;
-        }).toList();
+        }).collect(Collectors.toCollection(ArrayList::new));
 
         toDoItemRepository.saveAll(items);
         list.setItems(items);
@@ -124,7 +125,7 @@ public class ToDoListService {
             item.setSubQuantitiesJson(null);
             item.setList(list);
             return item;
-        }).toList();
+       }).collect(Collectors.toCollection(ArrayList::new));
 
         toDoItemRepository.saveAll(items);
         list.setItems(items);
