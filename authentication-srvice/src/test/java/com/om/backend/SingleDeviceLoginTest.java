@@ -11,9 +11,11 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @Import(UserSessionService.class)
+@ActiveProfiles("test")
 class SingleDeviceLoginTest {
 
     @Autowired

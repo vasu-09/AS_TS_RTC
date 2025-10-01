@@ -137,8 +137,7 @@ public class OtpServiceTest {
 
         OtpMessageBuilder builder = Mockito.mock(OtpMessageBuilder.class);
         Mockito.when(builder.build(anyString())).thenAnswer(i -> "OTP:"+i.getArgument(0));
-        otpRepo = Mockito.mock(OtpRepository.class);
-        userRepo = Mockito.mock(UserRepository.class);
+        
 
         OtpService.JwtSigner signer = new DummySigner(clock);
 
@@ -163,9 +162,11 @@ public class OtpServiceTest {
     void sendAndVerifySuccess() {
         String phone = "9999999999";
         service.sendOtp(phone);
-        String key = "otp:+919999999999";
-        String otp = store.get(key);
-        assertNotNull(otp);
+        String e164 = com.om.backend.util.PhoneNumberUtil1.toE164India(phone);
+        String key  = "otp:" + e164;            // same prefix/format the service uses
+        String otp  = store.get(key);
+        assertNotNull(otp, "OTP should have been stored in Redis");
+
         Long userId = service.verifyOtp(phone, otp);
         assertNotNull(userId);
         assertTrue(userRepo.findById(userId).isPresent());

@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "real-time-communication")
+@FeignClient(name = "real-time-communication", url = "${rtc.base-url}")
 public interface MediaClient {
     @PostMapping("/api/media/upload-intent")
     MediaUploadIntentResp uploadIntent(@RequestBody MediaUploadIntent req);
