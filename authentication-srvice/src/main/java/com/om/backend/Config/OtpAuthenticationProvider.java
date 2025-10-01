@@ -20,9 +20,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OtpAuthenticationProvider implements AuthenticationProvider {
 
-    private  OtpService otpService;
-    private  UserService userService;
-    private  MyUserDetailsService myUserDetailsService; // <-- add this
+    private final OtpService otpService;
+    private final UserService userService;
+    private final MyUserDetailsService myUserDetailsService;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {

@@ -131,7 +131,8 @@ public class OtpServiceTest {
             return u;
         });
         Mockito.when(userRepo.findById(anyLong())).thenAnswer(inv ->
-                Optional.ofNullable(usersById.get(inv.getArgument(0))));        SmsClient sms = Mockito.mock(SmsClient.class);
+                 Optional.ofNullable(usersById.get(inv.getArgument(0))));
+        SmsClient sms = Mockito.mock(SmsClient.class);
         Mockito.when(sms.sendOtpMessage(anyString(), anyString(), anyBoolean())).thenReturn(new SendSmsResponse());
 
         OtpMessageBuilder builder = Mockito.mock(OtpMessageBuilder.class);
