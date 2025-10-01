@@ -6,7 +6,6 @@
 package com.om.backend.services;
 
 import com.om.backend.Config.SmsProperties;
-import com.om.backend.Dto.SendSmsRequest;
 import com.om.backend.Dto.SendSmsResponse;
 import com.om.backend.Model.User;
 import com.om.backend.Model.Otp;
@@ -74,20 +73,12 @@ public class OtpService {
      */
     @Transactional(noRollbackFor = RuntimeException.class)
     public void sendOtp(String rawPhone) {
-
-
-
-
-        String e164 = PhoneNumberUtil1.toE164India(rawPhone); // choose the outgoing number per config
-        String phone = "NSN10".equalsIgnoreCase(props.getNumberFormat()) ? PhoneNumberUtil1.toIndiaNsn10(rawPhone) // 9876543210
-         : PhoneNumberUtil1.toIndia91NoPlus(rawPhone); // 919876543210 (default in yml)
-
-
-
+        String e164 = PhoneNumberUtil1.toE164India(rawPhone);
+        String providerMobile = "NSN10".equalsIgnoreCase(props.getNumberFormat())
+                ? PhoneNumberUtil1.toIndiaNsn10(rawPhone)
+                : PhoneNumberUtil1.toIndia91NoPlus(rawPhone);
         // 1) rate-limit (Redis counters)
-        enforceRateLimits(phone);
-
-        System.out.print(phone);
+        enforceRateLimits(e164);
 
         // 2) generate OTP using your config
         int digits = props.getOtp().getDigits();
@@ -95,20 +86,20 @@ public class OtpService {
 
         // 3) store OTP in Redis with TTL (overwrite any existing)
         Duration ttl = Duration.ofMinutes(props.getOtp().getTtlMinutes());
-        redis.opsForValue().set(otpKey(phone), otp, ttl);
+        redis.opsForValue().set(otpKey(e164), otp, ttl);
 
         // 4) (optional) also persist to DB for audit/troubleshooting (comment out if not needed)
 
-            Otp row = otpRepo.findByPhoneNumber(phone).orElseGet(Otp::new);
-            row.setPhoneNumber(phone);
+            Otp row = otpRepo.findByPhoneNumber(e164).orElseGet(Otp::new);
+            row.setPhoneNumber(e164);
             row.setOtpCode(otp);
+            row.setCreatedAt(Instant.now(clock));
             row.setExpiredAt(Instant.now(clock).plus(ttl));
             otpRepo.save(row);
 
-
         // Send via your SMS provider
-        SendSmsResponse res = smsClient.sendOtpMessage(messageBuilder.build(otp), phone, true);
-        log.info("OTP send: e164={}, providerMobile={}", rawPhone, phone);
+        SendSmsResponse res = smsClient.sendOtpMessage(messageBuilder.build(otp), providerMobile, true);
+        log.info("OTP send: e164={}, providerMobile={}", e164, providerMobile);
         if (res == null || !res.isOk()) {
             String desc = res != null && res.getErrorDescription() != null ? res.getErrorDescription() : "unknown";
             Integer code = res != null ? res.getErrorCode() : null;
@@ -126,12 +117,13 @@ public class OtpService {
      */
     @Transactional
     public Long verifyOtp(String rawPhone, String otpCode) {
-        String phone = "NSN10".equalsIgnoreCase(props.getNumberFormat())
-                ? PhoneNumberUtil1.toIndiaNsn10(rawPhone)
-                : PhoneNumberUtil1.toIndia91NoPlus(rawPhone);
+       if (otpCode == null || otpCode.isBlank()) {
+            throw new IllegalArgumentException("OTP code is required");
+        }
 
+        String e164 = PhoneNumberUtil1.toE164India(rawPhone);
         // 1) fetch OTP from Redis
-        String key = otpKey(phone);
+        String key = otpKey(e164);
         String expected = redis.opsForValue().get(key);
         if (expected != null) {
             // Redis path (preferred)
@@ -142,7 +134,7 @@ public class OtpService {
             redis.delete(key);
         } else {
             // Optional DB fallback when auditing is enabled
-            Optional<Otp> audit = otpRepo.findByPhoneNumber(phone);
+            Optional<Otp> audit = otpRepo.findByPhoneNumber(e164);
             if (audit.isEmpty() || Instant.now(clock).isAfter(audit.get().getExpiredAt())) {
                 throw new IllegalArgumentException("OTP expired or not requested");
             }
@@ -154,11 +146,11 @@ public class OtpService {
         }
 
         // 2) resolve/create user
-        return userRepo.findByPhoneNumber(phone)
+        return userRepo.findByPhoneNumber(e164)
                 .map(User::getId)
                 .orElseGet(() -> {
                     User u = new User();
-                    u.setPhoneNumber(phone);
+                    u.setPhoneNumber(e164);
                     u.setCreatedAt(Instant.now(clock));
                     u.setUpdatedAt(Instant.now(clock));
                     userRepo.save(u);
@@ -206,7 +198,7 @@ public class OtpService {
     private void enforceRateLimits(String phone) {
         int perMinute = props.getOtp().getPerMinuteLimit();
         int perHour = props.getOtp().getPerHourLimit();
-    
+        Instant now = Instant.now(clock);
 
         // minute window (60s)
         Long minuteCount = redis.opsForValue().increment(rlMinuteKey(phone));
@@ -221,9 +213,6 @@ public class OtpService {
         Long hourCount = redis.opsForValue().increment(rlHourlyKey(phone));
         if (hourCount != null && hourCount > perHour) {
             throw new IllegalStateException("Too many OTP requests. Try again later.");
-        }
-        if (hourCount != null && hourCount > perHour) {
-                throw new IllegalStateException("Too many OTP requests. Try again later.");
         }
     }
 
