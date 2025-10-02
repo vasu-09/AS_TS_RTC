@@ -26,11 +26,14 @@
 		<tag/>
 		<url/>
 	</scm>
-	<properties>
-		<java.version>17</java.version>
-		<spring-cloud.version>2025.0.0</spring-cloud.version>
-		<httpclient5.version>5.4.4</httpclient5.version>
-	</properties>
+	 <properties>
+            <java.version>17</java.version>
+            <spring-cloud.version>2025.0.0</spring-cloud.version>
+            <httpclient5.version>5.4.4</httpclient5.version>
+            <spring-security.version>6.4.11</spring-security.version>
+            <opentelemetry.version>1.45.0</opentelemetry.version>
+            <opentelemetry.alpha.version>1.45.0-alpha</opentelemetry.alpha.version>
+    </properties>
 	<dependencies>
 		<dependency>
   			<groupId>com.google.firebase</groupId>
@@ -171,13 +174,27 @@
     				</dependency>
 			 <dependency>
       			<groupId>io.opentelemetry</groupId>
-      			<artifactId>opentelemetry-bom</artifactId>
-      			<version>1.42.0</version>
-      			<type>pom</type>
-      			<scope>import</scope>
-    		</dependency>
-		</dependencies>
-	</dependencyManagement>
+                        <artifactId>opentelemetry-bom</artifactId>
+                        <version>${opentelemetry.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                </dependency>
+                <dependency>
+                        <groupId>io.opentelemetry</groupId>
+                        <artifactId>opentelemetry-bom-alpha</artifactId>
+                        <version>${opentelemetry.alpha.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                </dependency>
+                <dependency>
+                        <groupId>org.springframework.security</groupId>
+                        <artifactId>spring-security-bom</artifactId>
+                        <version>${spring-security.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                </dependency>
+                </dependencies>
+        </dependencyManagement>
 
 	<build>
 		<plugins>
