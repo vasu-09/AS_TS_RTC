@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Set;
 
-@FeignClient(name = "real-time-communication",contextId = "chatRoomClient", path = "/api/chat/rooms")
+@FeignClient(name = "real-time-communication",contextId = "chatRoomClient", path = "/api/chat/rooms", url = "${real-time-communication.url:http://localhost:20}")
 public interface ChatRoomService {
 
     @GetMapping("/direct")

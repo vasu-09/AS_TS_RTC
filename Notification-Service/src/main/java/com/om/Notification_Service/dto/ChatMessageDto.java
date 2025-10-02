@@ -5,6 +5,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
@@ -14,6 +15,7 @@ public class ChatMessageDto {
     private MessageType type;
     private String content;
     private Instant timestamp;
+
 
     // Private ctor used by the builder
     private ChatMessageDto(Builder b) {
