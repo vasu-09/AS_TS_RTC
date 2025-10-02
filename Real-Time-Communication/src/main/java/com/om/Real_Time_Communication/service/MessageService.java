@@ -184,7 +184,7 @@ public class MessageService {
         Long receiverId = Long.valueOf(dto.getReceiverId());
 
         if (dto.getMessageId() == null || dto.getMessageId().isBlank()) {
-            throw new IllegalArgumentException("messageId required");
+            dto.setMessageId(UUID.randomUUID().toString());
         }
 
         // Idempotency check: if message already exists, avoid duplicates
