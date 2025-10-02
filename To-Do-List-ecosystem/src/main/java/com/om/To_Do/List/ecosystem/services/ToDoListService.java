@@ -252,7 +252,7 @@ public class ToDoListService {
         dto.setUpdatedAt(list.getUpdatedAt());
         dto.setCreatedByUserId(list.getCreatedByUserId());
 
-        List<ToDoItem> items = list.getItems();
+        List<ToDoItem> items = toDoItemRepository.findByListId(list.getId());
         if (items == null) {
             items = Collections.emptyList();
         }
@@ -297,7 +297,7 @@ public class ToDoListService {
         dto.setListType(list.getListType().name());
         dto.setUpdatedAt(list.getUpdatedAt());
         dto.setCreatedAt(list.getCreatedAt());
-        List<ToDoItem> items = list.getItems();
+        List<ToDoItem> items = toDoItemRepository.findByListId(list.getId());
         if (items == null) {
             items = Collections.emptyList();
         }

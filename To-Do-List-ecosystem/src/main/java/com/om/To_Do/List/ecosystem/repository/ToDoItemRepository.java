@@ -17,5 +17,7 @@ public interface ToDoItemRepository extends JpaRepository<ToDoItem, Long> {
     @Query("DELETE FROM ToDoItem t WHERE t.list.id = :listId")
     void deleteByListId(@Param("listId") Long listId);
 
+     List<ToDoItem> findByListId(Long listId);
+
     List<ToDoItem> findByListIdAndUpdatedAtAfter(Long listId, LocalDateTime updatedAt);
 }

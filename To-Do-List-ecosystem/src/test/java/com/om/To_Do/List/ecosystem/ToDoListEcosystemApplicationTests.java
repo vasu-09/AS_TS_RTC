@@ -10,8 +10,8 @@ import org.springframework.test.context.ActiveProfiles;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class ToDoListEcosystemApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }
