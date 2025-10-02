@@ -274,9 +274,10 @@ public class MessageService {
     public MessageDto saveCallInvite(MessageDto messageDto) throws AccessDeniedException {
 
         String senderId = messageDto.getSenderId();
-        Long receiverId = Long.valueOf(messageDto.getReceiverId());
+        String receiverIdStr = messageDto.getReceiverId();
+        Long receiverId = Long.valueOf(receiverIdStr);
 
-        if (blockService.isBlocked(senderId, receiverId)) {
+        if (blockService.isBlocked(senderId, receiverIdStr)) {
             throw new AccessDeniedException("Call invite blocked between users.");
         }
 
