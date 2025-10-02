@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.Calendar;
 import java.util.List;
 
-@FeignClient(name = "authentication-service")
+@FeignClient(name = "authentication-service",  url = "${authentication-service.url:http://localhost:0}")
 public interface UserServiceClient {
 
     @PostMapping("/users/get-ids-by-phone-numbers")
