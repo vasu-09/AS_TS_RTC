@@ -14,6 +14,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.om.Real_Time_Communication.client.UserServiceClient;
+import com.om.Real_Time_Communication.security.SessionRegistry;
+import java.util.Collections;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -22,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -64,6 +68,27 @@ class MessageServiceIntegrationTest {
         @Bean
         RoomMembershipService membership() {
             return mock(RoomMembershipService.class);
+        }
+        @Bean
+        SessionRegistry sessionRegistry() {
+            SessionRegistry registry = mock(SessionRegistry.class);
+            when(registry.getSessions(anyLong())).thenReturn(Collections.emptySet());
+            return registry;
+        }
+
+        @Bean
+        PendingMessageService pendingMessageService() {
+            return mock(PendingMessageService.class);
+        }
+
+        @Bean
+        UndeliveredMessageStore undeliveredMessageStore() {
+            return mock(UndeliveredMessageStore.class);
+        }
+
+        @Bean
+        UserServiceClient userServiceClient() {
+            return mock(UserServiceClient.class);
         }
     }
 

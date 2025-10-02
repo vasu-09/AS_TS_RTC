@@ -18,11 +18,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -41,13 +44,16 @@ class MessageServiceTest {
     @Mock ChatRoomService aclService;
     @Mock DirectRoomPolicy directPolicy;
     @Mock RoomMembershipService membership;
+    @Mock PendingMessageService pendingMessages;
+    @Mock UndeliveredMessageStore undeliveredStore;
 
     @InjectMocks
     MessageService service;
 
     @BeforeEach
     void setup() {
-        when(blockService.isBlocked(anyString(), anyString())).thenReturn(false);
+        lenient().when(blockService.isBlocked(anyString(), anyString())).thenReturn(false);
+        lenient().when(sessionRegistry.getSessions(anyLong())).thenReturn(Collections.emptySet());
     }
 
     @Test
@@ -61,7 +67,9 @@ class MessageServiceTest {
         saved.setMessageId("m1");
         saved.setTimestamp(LocalDateTime.now());
         when(messageRepository.save(any())).thenReturn(saved);
-        when(sessionRegistry.hasActive(2L)).thenReturn(true);
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn("sess-1");
+        when(sessionRegistry.getSessions(2L)).thenReturn(Set.of(session));
 
         MessageDto dto = new MessageDto();
         dto.setSenderId("1");
@@ -73,9 +81,9 @@ class MessageServiceTest {
         MessageDto result = service.handlePrivateMessage(dto);
         assertEquals("m1", result.getMessageId());
 
-        verify(messagingTemplate).convertAndSendToUser(eq("2"), anyString(), eq(dto));
-        verify(messagingTemplate).convertAndSendToUser(eq("1"), anyString(), eq(dto));
-        verify(eventPublisher, never()).publishOfflineMessage(anyString(), any());
+        verify(messagingTemplate).convertAndSendToUser(eq("2"), eq("/queue/private"), eq(dto), anyMap());
+        verify(messagingTemplate).convertAndSendToUser(eq("1"), eq("/queue/private"), eq(dto));
+        verify(undeliveredStore, never()).record(anyLong(), anyString(), any());
     }
 
     @Test
@@ -89,7 +97,7 @@ class MessageServiceTest {
         saved.setMessageId("m2");
         saved.setTimestamp(LocalDateTime.now());
         when(messageRepository.save(any())).thenReturn(saved);
-        when(sessionRegistry.hasActive(3L)).thenReturn(false);
+        when(sessionRegistry.getSessions(3L)).thenReturn(Collections.emptySet());
 
         MessageDto dto = new MessageDto();
         dto.setSenderId("1");
@@ -100,9 +108,9 @@ class MessageServiceTest {
 
         service.handlePrivateMessage(dto);
 
-        verify(eventPublisher).publishOfflineMessage("3", dto);
-        verify(messagingTemplate).convertAndSendToUser(eq("1"), anyString(), eq(dto));
-        verify(messagingTemplate, never()).convertAndSendToUser(eq("3"), anyString(), eq(dto));
+        verify(undeliveredStore).record(eq(3L), anyString(), any());
+        verify(messagingTemplate).convertAndSendToUser(eq("1"), eq("/queue/private"), eq(dto));
+        verify(messagingTemplate, never()).convertAndSendToUser(eq("3"), anyString(), any());
     }
 
     @Test
