@@ -216,7 +216,7 @@ public class MessageService {
 
         eventPublisher.publish(
                 new EventMessage(
-                        UUID.fromString(String.valueOf(receiverId)),
+                        receiverId,
                         "NEW_MESSAGE",
                         Map.of(
                                 "senderId", senderId,
@@ -300,7 +300,7 @@ public class MessageService {
         Message saved = messageRepository.save(message);
 
         eventPublisher.publish(new EventMessage(
-                UUID.fromString(receiverId),
+                receiverId,
                 "CALL_INVITE",
                 Map.of(
                         "senderId", senderId,
