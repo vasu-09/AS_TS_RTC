@@ -28,6 +28,17 @@ spring:
 server:
   port: ${SERVER_PORT:8092}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true   # Boot 3.x (for Boot 2.3–2.7 use management.health.probes.enabled=true)
+      show-details: never
+
 sms:
   base-url: ${SMS_BASE_URL:https://api.mylogin.co.in/api/v2}
   api-key: ${SMS_API_KEY:N9v15Ydho0qL84kMBQGmAMmdE5vfG61D+TF8Nc+X80s=}
