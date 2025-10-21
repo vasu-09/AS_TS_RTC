@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -30,6 +31,21 @@ public class JwtFilter extends OncePerRequestFilter {
     private JWTService jwtService;
 
     private static final Logger log = LoggerFactory.getLogger(OtpService.class);
+
+    private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/auth/otp/send",
+            "/auth/otp/verify",
+            "/actuator/health",
+            "/actuator/health/**",
+            "/"
+    );
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return PUBLIC_ENDPOINTS.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
+    }
 
 
     @Override
