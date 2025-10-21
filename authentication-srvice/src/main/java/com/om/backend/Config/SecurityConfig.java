@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(reg -> reg
-                        .requestMatchers("/auth/otp/send", "/auth/otp/verify",
+                        .requestMatchers("/auth/otp/send", "/auth/otp/verify", "/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness", "/",
                                 "/.well-known/jwks.json", "/.well-known/openid-configuration").permitAll()
                         .anyRequest().authenticated()
                 )
