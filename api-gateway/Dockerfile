@@ -1,24 +1,33 @@
-# ---- Build ----
-FROM maven:3.9.8-eclipse-temurin-17-alpine AS build
-WORKDIR /app
-# Cache dependencies first (faster rebuilds)
+# ---------- Build stage ----------
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+
+# 1) Cache deps
 COPY pom.xml .
-RUN mvn -B -DskipTests dependency:go-offline
-# Now add sources and build
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q -DskipTests dependency:go-offline
+
+# 2) Build jar
 COPY src ./src
-RUN mvn -B -DskipTests clean package
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q -DskipTests package
 
-# ---- Runtime ----
-FROM eclipse-temurin:17-jre-alpine AS runtime
+# 3) Copy the bootable jar to a fixed name (no shell needed later)
+RUN JAR="$(ls target/*-SNAPSHOT.jar 2>/dev/null || ls target/*jar | head -n1)" \
+ && mkdir -p /out \
+ && cp "$JAR" /out/app.jar
+
+# ---------- Runtime stage ----------
+# Distroless = no shell, non-root by default
+FROM gcr.io/distroless/java17-debian12:nonroot
 WORKDIR /app
-# Create non-root with stable UID (good for K8s)
-RUN adduser -D -u 1001 -s /sbin/nologin spring
-USER 1001
-COPY --from=build /app/target/*.jar /app/app.jar
 
+# sensible JVM defaults for containers
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50 -XX:+ExitOnOutOfMemoryError"
 
-EXPOSE 8080
+# bring in the app
+COPY --from=build /out/app.jar /app/app.jar
 
-# Helpful default memory setting for containers
-ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+# document the port (K8s Service/Ingress will expose)
+# EXPOSE 8080
+
+# run as non-root; distroless already is non-root
 ENTRYPOINT ["java","-jar","/app/app.jar"]
