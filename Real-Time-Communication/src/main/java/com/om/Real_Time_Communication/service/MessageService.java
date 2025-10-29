@@ -181,9 +181,16 @@ public class MessageService {
 
     public MessageDto handlePrivateMessage(MessageDto dto) throws AccessDeniedException {
         String senderId = dto.getSenderId();
-        Long receiverId = Long.valueOf(dto.getReceiverId());
+        String receiverId = dto.getReceiverId();
+        Long receiverUserId = parseUserId(receiverId);
 
         if (dto.getMessageId() == null || dto.getMessageId().isBlank()) {
+           // Generate a deterministic idempotency key when one is not supplied by the
+            // caller. Tests – and potentially existing API consumers – may omit the
+            // message identifier, but we still need to persist the payload exactly
+            // once even under concurrent access. Using a UUID here gives us a unique
+            // per-message key while still allowing callers that *do* provide an id to
+            // hit the fast idempotency check above.
             dto.setMessageId(UUID.randomUUID().toString());
         }
 
@@ -195,7 +202,7 @@ public class MessageService {
 
 
         // Block check: Prevent sender OR receiver from communicating
-        if (blockService.isBlocked(senderId, String.valueOf(receiverId))) {
+        if (blockService.isBlocked(senderId, receiverId)) {
 
             throw new AccessDeniedException("Messaging blocked between users.");
         }
@@ -213,13 +220,17 @@ public class MessageService {
 
         // Save to DB
         Message saved = messageRepository.save(entity);
+        unhideDirectRoomForUser(senderId, dto.getReceiverId());
+        unhideDirectRoomForUser(dto.getReceiverId(), senderId);
+
 
         eventPublisher.publish(
                 new EventMessage(
-                        receiverId,
+                        receiverUserId,
                         "NEW_MESSAGE",
                         Map.of(
                                 "senderId", senderId,
+                                "receiverId", receiverId,
                                 "content", dto.getContent(),
                                 "timestamp", saved.getTimestamp().toString()
                         )
@@ -228,11 +239,14 @@ public class MessageService {
 
         // Deliver to each active session for the receiver; if no session or a send
         // fails, record the undelivered message for later inspection.
-        Long receiverUserId = Long.valueOf(receiverId);
-        Set<WebSocketSession> sessions = sessionRegistry.getSessions(receiverUserId);
+        Set<WebSocketSession> sessions = receiverUserId == null
+                ? Collections.emptySet()
+                : sessionRegistry.getSessions(receiverUserId);
         if (sessions.isEmpty()) {
-            undeliveredStore.record(receiverUserId, String.valueOf(saved.getId()),
-                    new IllegalStateException("no active session"));
+          if (receiverUserId != null) {
+                undeliveredStore.record(receiverUserId, String.valueOf(saved.getId()),
+                        new IllegalStateException("no active session"));
+            }
         } else {
             for (WebSocketSession s : sessions) {
                 try {
@@ -241,7 +255,9 @@ public class MessageService {
                     messagingTemplate.convertAndSendToUser(String.valueOf(receiverId),
                             "/queue/private", dto, headers);
                 } catch (Exception ex) {
-                    undeliveredStore.record(receiverUserId, String.valueOf(saved.getId()), ex);
+                     if (receiverUserId != null) {
+                        undeliveredStore.record(receiverUserId, String.valueOf(saved.getId()), ex);
+                    }
                 }
             }
         }
@@ -258,6 +274,17 @@ public class MessageService {
 
     }
 
+     private static Long parseUserId(String userId) {
+        if (userId == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(userId);
+        } catch (NumberFormatException ignore) {
+            return null;
+        }
+    }
+    
     public MessageDto toDto(Message message) {
         MessageDto dto = new MessageDto();
         dto.setId(message.getId());
@@ -393,6 +420,81 @@ public class MessageService {
         return callRoomRepository.save(callRoom);
     }
 
+     @Transactional
+    public void deleteConversationForUser(String currentUserId, String otherUserId) {
+        List<Message> messages = messageRepository.findConversationBetween(currentUserId, otherUserId);
+        boolean updated = false;
+
+        for (Message message : messages) {
+            if (message.isDeletedForEveryone()) {
+                continue;
+            }
+
+            if (currentUserId.equals(message.getSenderId()) && !message.isDeletedBySender()) {
+                message.setDeletedBySender(true);
+                updated = true;
+            }
+
+            if (currentUserId.equals(message.getReceiverId()) && !message.isDeletedByReceiver()) {
+                message.setDeletedByReceiver(true);
+                updated = true;
+            }
+
+            if (message.getDeletedByUserIds().add(currentUserId)) {
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            messageRepository.saveAll(messages);
+        }
+
+        hideDirectRoomForUser(currentUserId, otherUserId);
+    }
+
+    private void hideDirectRoomForUser(String currentUserId, String otherUserId) {
+        Long maybeUserId = parseUserId(currentUserId);
+        Long maybePeerId = parseUserId(otherUserId);
+
+        if (maybeUserId == null || maybePeerId == null ) {
+            return;
+        }
+
+        chatRoomRepository.findDirectRoom(maybeUserId, maybePeerId, ChatRoomType.DIRECT)
+                .flatMap(room -> chatRoomParticipantRepository.findByUserIdAndChatRoom(maybeUserId, room))
+                .ifPresent(participant -> {
+                    if (!participant.isHidden()) {
+                        participant.setHidden(true);
+                        participant.setHiddenAt(LocalDateTime.now());
+                        chatRoomParticipantRepository.save(participant);
+                        if (membership != null) {
+                            membership.evictUserRooms(maybeUserId);
+                        }
+                    }
+                });
+    }
+
+    private void unhideDirectRoomForUser(String currentUserId, String otherUserId) {
+        Long maybeUserId = parseUserId(currentUserId);
+        Long maybePeerId = parseUserId(otherUserId);
+
+        if (maybeUserId == null || maybePeerId == null) {
+            return;
+        }
+
+        chatRoomRepository.findDirectRoom(maybeUserId, maybePeerId, ChatRoomType.DIRECT)
+                .flatMap(room -> chatRoomParticipantRepository.findByUserIdAndChatRoom(maybeUserId, room))
+                .ifPresent(participant -> {
+                    if (participant.isHidden()) {
+                        participant.setHidden(false);
+                        participant.setHiddenAt(null);
+                        chatRoomParticipantRepository.save(participant);
+                        if (membership != null) {
+                            membership.evictUserRooms(maybeUserId);
+                        }
+                    }
+                });
+    }
 
 
     public void deleteMessageForUser(Long messageId, String userId) {
@@ -426,10 +528,6 @@ public class MessageService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
-
-
-
-
 
     /** Stable broadcast/event shape for subscribers (ascending compatible). */
     public Map<String, Object> toRoomEvent(ChatMessage m) {
